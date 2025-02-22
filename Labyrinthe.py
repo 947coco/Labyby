@@ -1,4 +1,10 @@
-import pygame, codecs, random
+import pygame, codecs, random, time
+
+# definition des couleurs primaires/principales
+white, black          = (255, 255, 255), (0, 0, 0)
+red, green, blue      = (255, 0, 0), (0, 255, 0), (0, 0, 255)
+yellow, cyan, magenta = (255, 255, 0), (0, 255, 255), (255, 0, 255)
+orange, purple, pink  = (255, 165, 0), (128, 0, 128), (233, 40, 99)
 
 class Pile:
     def __init__(self):     self.contenu=[]
@@ -8,10 +14,9 @@ class Pile:
     def taille(self):       return len(self.contenu)
     def sommet(self):       return self.contenu[-1] if not self.est_vide() else print("Pile vide !")
 
-class Case:
-    def __init__(self):
-        self.murN, self.murS, self.murE, self.murW = True, True, True, True
-        self.vue = False
+class Case: 
+    def __init__(self): 
+        self.murN, self.murS, self.murE, self.murW, self.vue = True, True, True, True, False
 
 class Labyrinthe:
     def __init__(self, largeur, hauteur):
@@ -62,23 +67,48 @@ class Labyrinthe:
             pile.depiler() if len(directions) == 0 else self.__abattre_mur(i, j, random.choice(directions), pile)
 
 
-class Fenetre():
-    def __init__(self):
-        pass
-
-    def creer_fenetre(self, couleur, titre):
+class Jeux():
+    def __init__(self, couleur, titre):
         pygame.init()
-        fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        fenetre.fill(couleur) 
+        self.fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
+        self.fenetre.fill(couleur) 
         pygame.display.set_caption(titre)
+        self.icon = pygame.image.load('logo.png')
+        pygame.display.set_icon(self.icon)
+        self.clock = pygame.time.Clock()
+        self.elements = {}
+    def xy_pourcent(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.01)
+
+    def creer_ligne(self, x1, x2, y1, y2, epaisseur, couleur): 
+        pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
+
     
-    def xy_pourcent(X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.01)
 
+    def boucle_jeu(self):
+        Continer = True
+        while Continer :
+            for evenement in pygame.event.get():
+                if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
+                    # Bouton exit
+                    #if exit_xy[0] <= evenement.pos[0] <= exit_xy[0] + exit_wh[0] and exit_xy[1] <= evenement.pos[1] <= exit_xy[1] + exit_wh[1]:
+                      #  continuer = False
+                    pass
+            keys = pygame.key.get_pressed()
+            if keys[pygame.K_z]:
+                print("touche z clique")
+            if keys[pygame.K_s]:
+                print("touche s clique")
+            self.fenetre.fill(black) # remplir l'ecran d'une couleur pour tout effacer
 
+            
+            
 
+            pygame.display.flip() # put your work on screen
 
+            self.clock.tick(60)  # limites les FPS a 60
 
-
+jeu = Jeux(black, "titre1")
+jeu.boucle_jeu()
 if __name__ == "__main__":
     # Lancer le programme
     pass
