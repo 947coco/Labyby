@@ -1,4 +1,4 @@
-import pygame, codecs, random, time
+import pygame, codecs, random, time, sys
 
 # definition des couleurs primaires/principales
 white, black          = (255, 255, 255), (0, 0, 0)
@@ -76,38 +76,51 @@ class Jeux():
         self.icon = pygame.image.load('logo.png')
         pygame.display.set_icon(self.icon)
         self.clock = pygame.time.Clock()
-        self.elements = {}
+        self.liste_labels = [] # liste de tuple pour enregistrer les labels
+        self.liste_lignes = [] # liste de tuple pour enregistrer les lignes 
     def xy_pourcent(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.01)
 
     def creer_ligne(self, x1, x2, y1, y2, epaisseur, couleur): 
-        pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
+        self.ligne = pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
+        self.liste_labels.append(self.ligne)
 
-    
+    def creer_label(self, x, y, w, h, couleur):
+        self.label_xy = self.xy_pourcent(x, y)
+        self.label_wh = self.xy_pourcent(w, h)
+        self.label = pygame.surface.Surface(self.label_wh)
+        self.label.fill(couleur)
+        self.liste_labels.append((self.label, self.label_xy, self.label_wh))
 
+    def update(self): 
+        # 
+        [self.fenetre.blit(element, position) for element, position, taille in self.liste_labels]
+        [self.fenetre.blit(element) for element in self.liste_lignes]
+            
     def boucle_jeu(self):
-        Continer = True
-        while Continer :
+        while True :
             for evenement in pygame.event.get():
                 if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
                     # Bouton exit
                     #if exit_xy[0] <= evenement.pos[0] <= exit_xy[0] + exit_wh[0] and exit_xy[1] <= evenement.pos[1] <= exit_xy[1] + exit_wh[1]:
-                      #  continuer = False
-                    pass
+                    pygame.quit()
+                    sys.exit()
             keys = pygame.key.get_pressed()
             if keys[pygame.K_z]:
                 print("touche z clique")
             if keys[pygame.K_s]:
                 print("touche s clique")
-            self.fenetre.fill(black) # remplir l'ecran d'une couleur pour tout effacer
 
             
             
+            self.update()
 
             pygame.display.flip() # put your work on screen
 
             self.clock.tick(60)  # limites les FPS a 60
 
 jeu = Jeux(black, "titre1")
+jeu.creer_label(500, 500, 200, 200, red)
+jeu.creer_ligne(500, 500, 100, 100, 5, green)
 jeu.boucle_jeu()
 if __name__ == "__main__":
     # Lancer le programme
