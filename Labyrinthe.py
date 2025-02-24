@@ -78,31 +78,39 @@ Et ducoup il faudra faire des importations : import Labyrinthe from Labyrinthe p
 """
 
 class Joueur():
-    def __init__(self, vitesse, chemin_image, nb_flash, nb_leurre, cooldown_transparence):
+    def __init__(self, vitesse, chemin_image, chemin_image_transparence, nb_flash, nb_leurre, cooldown_transparence):
         self.vitesse = vitesse
-        self.chemin_image = chemin_image
+        self.image = pygame.image.load(chemin_image).convert()
+        self.image_transparence = pygame.image.load(chemin_image_transparence).convert()
         self.cooldown_transparence = cooldown_transparence
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre
 
-    def deplacer_joueur(self, labyrinthe, touche_pressee):
-        if touche_pressee == "z" : pass
-        if touche_pressee == "q" : pass
-        if touche_pressee == "s" : pass
-        if touche_pressee == "d" : pass
+    def placer(self, coordonee_x, coordonee_y, direction_vue):
+        self.coordonee_x, self.coordonee_y = coordonee_x, coordonee_y
+        self.direction_vue = direction_vue
+
+    def deplacer(self, touche_pressee):
+        if touche_pressee == "z" : 
+            self.coordonee_y -= 1
+            time.sleep(1/self.vitesse)
+        if touche_pressee == "q" : 
+            self.coordonee_x -= 1
+            time.sleep(1/self.vitesse)
+        if touche_pressee == "s" : 
+            self.coordonee_y += 1
+            time.sleep(1/self.vitesse)
+        if touche_pressee == "d" : 
+            self.coordonee_x += 1
+            time.sleep(1/self.vitesse)
 
     def devient_transparent(self, labyrinthe):
-         
         pass
-
     def jete_flash(self):
         pass
-
     def jete_leurre(self):
         pass
-
     def controle_ennemie(self):
         pass
-
     def boost_vitesse(self):
         pass
 
@@ -126,6 +134,7 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
 
 class Jeux():
     def __init__(self):
+        self.joueur = None
         pass
 
 
@@ -144,26 +153,27 @@ class Jeux():
             self.fenetre = pygame.display.set_mode((largeur, hauteur))
         self.fenetre.fill(couleur) 
         pygame.display.set_caption(titre)
-        #self.icon = pygame.image.load('logo.png')
-        #pygame.display.set_icon(self.icon)
         self.clock = pygame.time.Clock()
         self.liste_labels = [] # dico pour enregistrer les labels (cle) et leurs coordonnees (valeur). forme : [x, y, w, h]
         self.liste_lignes = [] # dico pour enregistrer les lignes (cle) et leurs coordonnees (valeur). forme : [x1, y1, x2, y2]
+        #self.icon = pygame.image.load('logo.png')
+        #pygame.display.set_icon(self.icon)
+        
         
     # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci    
-    def creer_score(self):
+    def afficher_score(self):
         pass # A FAIRE
-    def creer_compteur_munition(self):
+    def afficher_compteur_munition(self):
         pass # A FAIRE
-    def creer_compteur_vie(self):
+    def afficher_compteur_vie(self):
         pass # A FAIRE
-    def creer_compteur_transparence(self):
+    def afficher_compteur_transparence(self):
         pass # A FAIRE
-    def creer_compteur_flash(self):
+    def afficher_compteur_flash(self):
         pass # A FAIRE
-    def creer_compteur_leurre(self):
+    def afficher_compteur_leurre(self):
         pass # A FAIRE
-    def creer_compteur_boost_vitesse(self):
+    def afficher_compteur_boost_vitesse(self):
         pass # A FAIRE
 
     # Sert a convertir des pourcentages X, Y en fonction de la taille de l'ecran afin de pouvoir jouer sur plusieurs resolutions possibles
@@ -186,12 +196,11 @@ class Jeux():
     def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur_mur, epaisseur_mur):
         self.long_mur_x, self.long_mur_y = self.unite_relatif(longeur_mur, longeur_mur)
         self.epaisseur_mur, pas_important  = self.unite_relatif(epaisseur_mur, 0) 
-        self.marge_x, self.marge_y = marge_x, marge_y
+        self.marge_x, self.marge_y = self.unite_relatif(marge_x, marge_y)
         self.hauteur_laby, self.largeur_laby = largeur, hauteur
         self.labyrinthe = Labyrinthe(self.hauteur_laby, self.largeur_laby)
         self.labyrinthe.generer()
         self.afficher_labyrinthe()
-        
 
     def afficher_labyrinthe(self):
         """
@@ -203,7 +212,9 @@ class Jeux():
         """
         for i in range(len(self.labyrinthe.laby)):
             for j in range(len(self.labyrinthe.laby[i])):
-                unite_i, unite_j = self.unite_relatif(i*2+self.marge_x, j*2+self.marge_y)
+                unite_i, unite_j = self.unite_relatif(i*2, j*2)
+                unite_i += self.marge_x
+                unite_j += self.marge_y
                 if self.labyrinthe.laby[i][j].murS:
                     self.creer_ligne(unite_i, unite_j+self.long_mur_y, unite_i+self.long_mur_x, unite_j+self.long_mur_y, self.epaisseur_mur, green)
                 if self.labyrinthe.laby[i][j].murW:
@@ -213,7 +224,20 @@ class Jeux():
                 if self.labyrinthe.laby[i][j].murE:
                     self.creer_ligne(unite_i+self.long_mur_x, unite_j, unite_i+self.long_mur_x, unite_j+self.long_mur_y, self.epaisseur_mur, green)
 
+    def creer_joueur(self):
+        self.joueur = Joueur(100, "./Logo_joueur.png", "./Logo_joueur.png", 0, 0, 0)
+        coord_joueur_x, coord_joueur_y = self.unite_relatif(10, 10)
+        self.joueur.placer(coord_joueur_x, coord_joueur_y, "S")
+
+    def afficher_joueur(self):
+        image =  pygame.transform.scale(self.joueur.image, (self.long_mur_x, self.long_mur_y))  
+        self.fenetre.blit(image, (self.marge_x+self.joueur.coordonee_x, self.marge_y+self.joueur.coordonee_y))
+        
+    def verifier_collision(self):
+        self.labyrinthe.laby[self.joueur.coordonee_x][self.joueur.coordonee_y].murN
     def boucle_jeu(self):
+        joueur_present = False
+        if self.joueur != None : joueur_present = True 
         while True :
             for evenement in pygame.event.get():
                 if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
@@ -222,19 +246,18 @@ class Jeux():
                     pygame.quit()
                     sys.exit()
             keys = pygame.key.get_pressed()
-            if keys[pygame.K_z]:
-                print("touche z clique")
-            if keys[pygame.K_q]:
-                print("touche q clique")
-            if keys[pygame.K_s]:
-                print("touche s clique")
-            if keys[pygame.K_d]:
-                print("touche d clique")
-
             
+
+            if keys[pygame.K_z]: self.joueur.deplacer("z")
+            if keys[pygame.K_q]: self.joueur.deplacer("q")
+            if keys[pygame.K_s]: self.joueur.deplacer("s")
+            if keys[pygame.K_d]: self.joueur.deplacer("d")
+
+            self.fenetre.fill(black)
             
             #self.update()
-
+            self.afficher_labyrinthe()
+            self.afficher_joueur()
             pygame.display.flip() # put your work on screen
 
             self.clock.tick(60)  # limites les FPS a 60
@@ -244,6 +267,7 @@ if __name__ == "__main__":
     jeu = Jeux()
     jeu.creer_fenetre(black, "titre1", True)
     jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2)
+    jeu.creer_joueur()
     #jeu.creer_label(500, 500, 200, 200, red)
     #jeu.creer_ligne(500, 500, 100, 100, 5, green)
     jeu.boucle_jeu()
