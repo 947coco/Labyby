@@ -17,7 +17,7 @@ class Pile:
 class Case: 
     def __init__(self): 
         self.murN, self.murS, self.murE, self.murW, self.vue = True, True, True, True, False
-
+        
 class Labyrinthe:
     def __init__(self, largeur, hauteur):
         self.hauteur, self.largeur = largeur, hauteur
@@ -78,32 +78,36 @@ Et ducoup il faudra faire des importations : import Labyrinthe from Labyrinthe p
 """
 
 class Joueur():
-    def __init__(self, vitesse, chemin_image, chemin_image_transparence, nb_flash, nb_leurre, cooldown_transparence):
+    def __init__(self, vitesse, coordonee_x, coordonee_y, direction_vue, largeur, hauteur, chemin_image, 
+                 chemin_image_transparence, nb_flash, nb_leurre, cooldown_transparence):
         self.vitesse = vitesse
         self.image = pygame.image.load(chemin_image).convert()
         self.image_transparence = pygame.image.load(chemin_image_transparence).convert()
         self.cooldown_transparence = cooldown_transparence
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre
-
-    def placer(self, coordonee_x, coordonee_y, direction_vue):
         self.coordonee_x, self.coordonee_y = coordonee_x, coordonee_y
+        self.largeur, self.hauteur = largeur, hauteur
         self.direction_vue = direction_vue
 
     def deplacer(self, touche_pressee):
         if touche_pressee == "z" : 
+            self.direction_vue = "N"
             self.coordonee_y -= 1
-            time.sleep(1/self.vitesse)
+            time.sleep(2/self.vitesse)
         if touche_pressee == "q" : 
+            self.direction_vue = "W"
             self.coordonee_x -= 1
-            time.sleep(1/self.vitesse)
+            time.sleep(2/self.vitesse)
         if touche_pressee == "s" : 
+            self.direction_vue = "S"
             self.coordonee_y += 1
-            time.sleep(1/self.vitesse)
+            time.sleep(2/self.vitesse)
         if touche_pressee == "d" : 
+            self.direction_vue = "E"
             self.coordonee_x += 1
-            time.sleep(1/self.vitesse)
+            time.sleep(2/self.vitesse)
 
-    def devient_transparent(self, labyrinthe):
+    def devient_transparent(self):
         pass
     def jete_flash(self):
         pass
@@ -133,18 +137,16 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
         pass
 
 class Jeux():
-    def __init__(self):
-        self.joueur = None
-        pass
-
-
-
-    def creer_fenetre(self, couleur, titre, fenetre_principale, fenetre_existant_w=0, fenetre_existant_h=0):
+    def __init__(self, couleur, titre, fenetre_principale, fenetre_existant_w=0, fenetre_existant_h=0):
         """
         creer une fenetre avec un titre, une couleur de fond et verifie si une fenetre principale
         a deja ete creer, dans ce cas, on creer une fenetre pop up plus petit au dessus de la principale 
         (exemple : fenetre de pause, d'acceuil...)
         """
+        self.joueur = None
+        self.clock = pygame.time.Clock()
+        self.liste_labels = [] # forme : [x, y, w, h]
+        self.liste_lignes = [] # forme : [x1, y1, x2, y2]
         pygame.init()
         if fenetre_principale : # 1ère fenetre en plein ecran
             self.fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -153,9 +155,7 @@ class Jeux():
             self.fenetre = pygame.display.set_mode((largeur, hauteur))
         self.fenetre.fill(couleur) 
         pygame.display.set_caption(titre)
-        self.clock = pygame.time.Clock()
-        self.liste_labels = [] # dico pour enregistrer les labels (cle) et leurs coordonnees (valeur). forme : [x, y, w, h]
-        self.liste_lignes = [] # dico pour enregistrer les lignes (cle) et leurs coordonnees (valeur). forme : [x1, y1, x2, y2]
+        
         #self.icon = pygame.image.load('logo.png')
         #pygame.display.set_icon(self.icon)
         
@@ -224,17 +224,22 @@ class Jeux():
                 if self.labyrinthe.laby[i][j].murE:
                     self.creer_ligne(unite_i+self.long_mur_x, unite_j, unite_i+self.long_mur_x, unite_j+self.long_mur_y, self.epaisseur_mur, green)
 
-    def creer_joueur(self):
-        self.joueur = Joueur(100, "./Logo_joueur.png", "./Logo_joueur.png", 0, 0, 0)
-        coord_joueur_x, coord_joueur_y = self.unite_relatif(10, 10)
-        self.joueur.placer(coord_joueur_x, coord_joueur_y, "S")
+    def creer_joueur(self, coord_joueur_x, coord_joueur_y, direction, vitesse, nb_flash, nb_leurre, cooldown_transparence):
+        self.joueur = Joueur(vitesse, coord_joueur_x, coord_joueur_y, direction, self.long_mur_x*0.9, self.long_mur_y*0.9, 
+                             "./Logo_joueur.png", "./Logo_joueur.png", nb_flash, nb_leurre, cooldown_transparence)
 
     def afficher_joueur(self):
-        image =  pygame.transform.scale(self.joueur.image, (self.long_mur_x, self.long_mur_y))  
-        self.fenetre.blit(image, (self.marge_x+self.joueur.coordonee_x, self.marge_y+self.joueur.coordonee_y))
+        image =  pygame.transform.scale(self.joueur.image, (self.joueur.largeur, self.joueur.hauteur))  
+        self.fenetre.blit(image, (self.marge_x+self.long_mur_x*(self.joueur.coordonee_x+0.1), self.marge_y+self.long_mur_y*(self.joueur.coordonee_y+0.1)))
         
-    def verifier_collision(self):
-        self.labyrinthe.laby[self.joueur.coordonee_x][self.joueur.coordonee_y].murN
+    def verifier_collision(self, touche_pressee):
+        case = self.labyrinthe.laby[self.joueur.coordonee_x][self.joueur.coordonee_y]
+        if case.murN and touche_pressee == "z": return None
+        if case.murW and touche_pressee == "q": return None
+        if case.murS and touche_pressee == "s": return None
+        if case.murE and touche_pressee == "d": return None
+        self.joueur.deplacer(touche_pressee)
+        
     def boucle_jeu(self):
         joueur_present = False
         if self.joueur != None : joueur_present = True 
@@ -248,10 +253,10 @@ class Jeux():
             keys = pygame.key.get_pressed()
             
 
-            if keys[pygame.K_z]: self.joueur.deplacer("z")
-            if keys[pygame.K_q]: self.joueur.deplacer("q")
-            if keys[pygame.K_s]: self.joueur.deplacer("s")
-            if keys[pygame.K_d]: self.joueur.deplacer("d")
+            if keys[pygame.K_z]: self.verifier_collision("z")
+            if keys[pygame.K_q]: self.verifier_collision("q")
+            if keys[pygame.K_s]: self.verifier_collision("s")
+            if keys[pygame.K_d]: self.verifier_collision("d")
 
             self.fenetre.fill(black)
             
@@ -264,10 +269,9 @@ class Jeux():
 
 
 if __name__ == "__main__":
-    jeu = Jeux()
-    jeu.creer_fenetre(black, "titre1", True)
+    jeu = Jeux(black, "titre1", True)
     jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2)
-    jeu.creer_joueur()
+    jeu.creer_joueur(0, 0, "S", 10, 1, 1, 1)
     #jeu.creer_label(500, 500, 200, 200, red)
     #jeu.creer_ligne(500, 500, 100, 100, 5, green)
     jeu.boucle_jeu()
