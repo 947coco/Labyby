@@ -34,9 +34,9 @@ class Labyrinthe:
     def __abattre_mur(self,i,j,dir,pile):
         if dir == 'S': # on se dirige vers le sud
             self.laby[i][j].murS = False # on abat le mur sud de la case courante
-            self.laby[i][j+1].murN = False # on abat le mur nord de la case située en-dessous de la case courante
-            self.laby[i][j+1].vue = True # cette case est alors marquée comme vue
-            pile.empiler((i, j+1)) # on stocke les coordonnées de cette case dans la pile
+            self.laby[i][j+1].murN = False # on abat le mur nord de la case situee en-dessous de la case courante
+            self.laby[i][j+1].vue = True # cette case est alors marquee comme vue
+            pile.empiler((i, j+1)) # on stocke les coordonnees de cette case dans la pile
         if dir == 'N':
             self.laby[i][j].murN = False  
             self.laby[i][j-1].murS = False  
@@ -73,16 +73,16 @@ class Labyrinthe:
 
 """ 
 Quand on aura fini, il faudra separer les classes dans des fichiers distincts pour que ce soit plus clean
-mais pour l'instant, c'est plus pratique d'avoir la classe Labyrinthe à porter.
+mais pour l'instant, c'est plus pratique d'avoir la classe Labyrinthe a porter.
 Et ducoup il faudra faire des importations : import Labyrinthe from Labyrinthe par exemple
 """
 
 class Joueur():
-    def __init__(self, labyrinthe, vitesse, couleur):
+    def __init__(self, vitesse, chemin_image, nb_flash, nb_leurre, cooldown_transparence):
         self.vitesse = vitesse
-        self.couleur = couleur
-        
-        pass
+        self.chemin_image = chemin_image
+        self.cooldown_transparence = cooldown_transparence
+        self.nb_flash, self.nb_leurre = nb_flash, nb_leurre
 
     def deplacer_joueur(self, labyrinthe, touche_pressee):
         if touche_pressee == "z" : pass
@@ -94,21 +94,41 @@ class Joueur():
          
         pass
 
+    def jete_flash(self):
+        pass
 
-class Projectile(): # Flash, leurre... (tout ce qui est jetable)
+    def jete_leurre(self):
+        pass
+
+    def controle_ennemie(self):
+        pass
+
+    def boost_vitesse(self):
+        pass
+
+
+class Ennemie():
     def __init__(self, labyrinthe, vitesse, chemin_image):
         self.vitesse = vitesse
         self.chemin_image = chemin_image
-        
-        pass
 
-    def lancement(self, direction_du_lance):
+
+class Projectile(): # Flash, leurre... (tout ce qui est jetable)
+    def __init__(self, vitesse, chemin_image, quantitee):
+        self.vitesse = vitesse
+        self.chemin_image = chemin_image
+        self.quantitee = quantitee
+        
+
+    def lancement(self, direction_du_lance, position_joueur_x, position_joueur_y):
 
         pass
 
 class Jeux():
     def __init__(self):
         pass
+
+
 
     def creer_fenetre(self, couleur, titre, fenetre_principale, fenetre_existant_w=0, fenetre_existant_h=0):
         """
@@ -117,9 +137,9 @@ class Jeux():
         (exemple : fenetre de pause, d'acceuil...)
         """
         pygame.init()
-        if fenetre_principale :
+        if fenetre_principale : # 1ère fenetre en plein ecran
             self.fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
-        else : 
+        else : # Cas ou l'on veut creer une fenetre secondaire
             largeur, hauteur = self.unite_relatif(fenetre_existant_w, fenetre_existant_h)
             self.fenetre = pygame.display.set_mode((largeur, hauteur))
         self.fenetre.fill(couleur) 
@@ -130,7 +150,7 @@ class Jeux():
         self.liste_labels = [] # dico pour enregistrer les labels (cle) et leurs coordonnees (valeur). forme : [x, y, w, h]
         self.liste_lignes = [] # dico pour enregistrer les lignes (cle) et leurs coordonnees (valeur). forme : [x1, y1, x2, y2]
         
-    # FONCTIONS A FAIRE : Implémenter les compteurs et afficher sur l'ecran ceux-ci    
+    # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci    
     def creer_score(self):
         pass # A FAIRE
     def creer_compteur_munition(self):
@@ -146,9 +166,9 @@ class Jeux():
     def creer_compteur_boost_vitesse(self):
         pass # A FAIRE
 
-    # Sert à convertir des pourcentages X, Y en fonction de la taille de l'écran afin de pouvoir jouer sur plusieurs resolutions possibles
+    # Sert a convertir des pourcentages X, Y en fonction de la taille de l'ecran afin de pouvoir jouer sur plusieurs resolutions possibles
     def unite_relatif(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.018)
-    # le petit 0.018 à la fin c'est pour ajuster le desequilibre entre la largeur et la hauteur de l'ecran car la hauteur est toujours plus petite  
+    # le petit 0.018 a la fin c'est pour ajuster le desequilibre entre la largeur et la hauteur de l'ecran car la hauteur est toujours plus petite  
 
     def creer_ligne(self, x1, y1, x2, y2, epaisseur, couleur):  # x1, y1 = coordonees du debut de la ligne, x2 et y2 sont la fin
         self.ligne = pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
@@ -164,12 +184,16 @@ class Jeux():
     
 
     def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur_mur, epaisseur_mur):
+        self.long_mur_x, self.long_mur_y = self.unite_relatif(longeur_mur, longeur_mur)
+        self.epaisseur_mur, pas_important  = self.unite_relatif(epaisseur_mur, 0) 
+        self.marge_x, self.marge_y = marge_x, marge_y
         self.hauteur_laby, self.largeur_laby = largeur, hauteur
-        self.labyrinthe = Labyrinthe(largeur, hauteur)
+        self.labyrinthe = Labyrinthe(self.hauteur_laby, self.largeur_laby)
         self.labyrinthe.generer()
-        self.afficher_labyrinthe(marge_x, marge_y, longeur_mur, epaisseur_mur)
+        self.afficher_labyrinthe()
+        
 
-    def afficher_labyrinthe(self, marge_x, marge_y, longeur, epaisseur):
+    def afficher_labyrinthe(self):
         """
         Fonction pour afficher le labyrinthe. Explication de ce bordel :
         on a, pour chaque coordonnee de point (tout en unite relatif): 
@@ -177,19 +201,17 @@ class Jeux():
         - la longeur du trait / mur
         - les coordonees de i et j pour les differentes cases
         """
-        long_mur_x, long_mur_y = self.unite_relatif(longeur, longeur)
-        epaisseur_relatif, pas_important  = self.unite_relatif(epaisseur, epaisseur) 
         for i in range(len(self.labyrinthe.laby)):
             for j in range(len(self.labyrinthe.laby[i])):
-                unite_i, unite_j = self.unite_relatif(i*2+marge_x, j*2+marge_y)
+                unite_i, unite_j = self.unite_relatif(i*2+self.marge_x, j*2+self.marge_y)
                 if self.labyrinthe.laby[i][j].murS:
-                    self.creer_ligne(unite_i, unite_j+long_mur_y, unite_i+long_mur_x, unite_j+long_mur_y, epaisseur_relatif, green)
+                    self.creer_ligne(unite_i, unite_j+self.long_mur_y, unite_i+self.long_mur_x, unite_j+self.long_mur_y, self.epaisseur_mur, green)
                 if self.labyrinthe.laby[i][j].murW:
-                    self.creer_ligne(unite_i, unite_j, unite_i, unite_j+long_mur_y, epaisseur_relatif, green)
+                    self.creer_ligne(unite_i, unite_j, unite_i, unite_j+self.long_mur_y, self.epaisseur_mur, green)
                 if self.labyrinthe.laby[i][j].murN:
-                    self.creer_ligne(unite_i, unite_j, unite_i+long_mur_x, unite_j, epaisseur_relatif, green)
+                    self.creer_ligne(unite_i, unite_j, unite_i+self.long_mur_x, unite_j, self.epaisseur_mur, green)
                 if self.labyrinthe.laby[i][j].murE:
-                    self.creer_ligne(unite_i+long_mur_x, unite_j, unite_i+long_mur_x, unite_j+long_mur_y, epaisseur_relatif, green)
+                    self.creer_ligne(unite_i+self.long_mur_x, unite_j, unite_i+self.long_mur_x, unite_j+self.long_mur_y, self.epaisseur_mur, green)
 
     def boucle_jeu(self):
         while True :
