@@ -76,6 +76,36 @@ Quand on aura fini, il faudra separer les classes dans des fichiers distincts po
 mais pour l'instant, c'est plus pratique d'avoir la classe Labyrinthe à porter.
 Et ducoup il faudra faire des importations : import Labyrinthe from Labyrinthe par exemple
 """
+
+class Joueur():
+    def __init__(self, labyrinthe, vitesse, couleur):
+        self.vitesse = vitesse
+        self.couleur = couleur
+        
+        pass
+
+    def deplacer_joueur(self, labyrinthe, touche_pressee):
+        if touche_pressee == "z" : pass
+        if touche_pressee == "q" : pass
+        if touche_pressee == "s" : pass
+        if touche_pressee == "d" : pass
+
+    def devient_transparent(self, labyrinthe):
+         
+        pass
+
+
+class Projectile(): # Flash, leurre... (tout ce qui est jetable)
+    def __init__(self, labyrinthe, vitesse, chemin_image):
+        self.vitesse = vitesse
+        self.chemin_image = chemin_image
+        
+        pass
+
+    def lancement(self, direction_du_lance):
+
+        pass
+
 class Jeux():
     def __init__(self):
         pass
@@ -132,14 +162,12 @@ class Jeux():
         label.fill(couleur)
         self.liste_labels.append([x, y, w, h])
     
-    def afficher_joueur(self, touche_appuiee, marge):
-        pass
 
-    def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur, epaisseur):
+    def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur_mur, epaisseur_mur):
         self.hauteur_laby, self.largeur_laby = largeur, hauteur
         self.labyrinthe = Labyrinthe(largeur, hauteur)
         self.labyrinthe.generer()
-        self.afficher_labyrinthe(marge_x, marge_y, longeur, epaisseur)
+        self.afficher_labyrinthe(marge_x, marge_y, longeur_mur, epaisseur_mur)
 
     def afficher_labyrinthe(self, marge_x, marge_y, longeur, epaisseur):
         """
