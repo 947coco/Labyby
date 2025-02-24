@@ -117,7 +117,8 @@ class Jeux():
         pass # A FAIRE
 
     # Sert à convertir des pourcentages X, Y en fonction de la taille de l'écran afin de pouvoir jouer sur plusieurs resolutions possibles
-    def unite_relatif(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.01)
+    def unite_relatif(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.018)
+    # le petit 0.018 à la fin c'est pour ajuster le desequilibre entre la largeur et la hauteur de l'ecran car la hauteur est toujours plus petite  
 
     def creer_ligne(self, x1, y1, x2, y2, epaisseur, couleur):  # x1, y1 = coordonees du debut de la ligne, x2 et y2 sont la fin
         self.ligne = pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
@@ -130,9 +131,17 @@ class Jeux():
         label = pygame.surface.Surface(w , h)
         label.fill(couleur)
         self.liste_labels.append([x, y, w, h])
+    
+    def afficher_joueur(self, touche_appuiee, marge):
+        pass
 
+    def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur, epaisseur):
+        self.hauteur_laby, self.largeur_laby = largeur, hauteur
+        self.labyrinthe = Labyrinthe(largeur, hauteur)
+        self.labyrinthe.generer()
+        self.afficher_labyrinthe(marge_x, marge_y, longeur, epaisseur)
 
-    def afficher_labyrinthe(self, largeur, hauteur, marge, longeur, epaisseur):
+    def afficher_labyrinthe(self, marge_x, marge_y, longeur, epaisseur):
         """
         Fonction pour afficher le labyrinthe. Explication de ce bordel :
         on a, pour chaque coordonnee de point (tout en unite relatif): 
@@ -142,12 +151,9 @@ class Jeux():
         """
         long_mur_x, long_mur_y = self.unite_relatif(longeur, longeur)
         epaisseur_relatif, pas_important  = self.unite_relatif(epaisseur, epaisseur) 
-        self.hauteur_laby, self.largeur_laby = largeur, hauteur
-        self.labyrinthe = Labyrinthe(largeur, hauteur)
-        self.labyrinthe.generer()
         for i in range(len(self.labyrinthe.laby)):
             for j in range(len(self.labyrinthe.laby[i])):
-                unite_i, unite_j = self.unite_relatif(i*2+marge, j*2+marge)
+                unite_i, unite_j = self.unite_relatif(i*2+marge_x, j*2+marge_y)
                 if self.labyrinthe.laby[i][j].murS:
                     self.creer_ligne(unite_i, unite_j+long_mur_y, unite_i+long_mur_x, unite_j+long_mur_y, epaisseur_relatif, green)
                 if self.labyrinthe.laby[i][j].murW:
@@ -168,8 +174,12 @@ class Jeux():
             keys = pygame.key.get_pressed()
             if keys[pygame.K_z]:
                 print("touche z clique")
+            if keys[pygame.K_q]:
+                print("touche q clique")
             if keys[pygame.K_s]:
                 print("touche s clique")
+            if keys[pygame.K_d]:
+                print("touche d clique")
 
             
             
@@ -183,7 +193,7 @@ class Jeux():
 if __name__ == "__main__":
     jeu = Jeux()
     jeu.creer_fenetre(black, "titre1", True)
-    jeu.afficher_labyrinthe(40, 30, 10, 2, 0.15)
+    jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2)
     #jeu.creer_label(500, 500, 200, 200, red)
     #jeu.creer_ligne(500, 500, 100, 100, 5, green)
     jeu.boucle_jeu()
