@@ -19,10 +19,6 @@ class Case:
         self.murN, self.murS, self.murE, self.murW, self.vue = True, True, True, True, False
 
 class Labyrinthe:
-    """
-    Dans le C66, la largeur et hauteur etaient inverser, je n'ai rien changer depuis donc
-    ne vous fiez pas au largeur, hauteur
-    """
     def __init__(self, largeur, hauteur):
         self.hauteur, self.largeur = largeur, hauteur
         self.laby = [[Case() for i in range(self.largeur)] for x in range(self.hauteur)]
@@ -58,6 +54,9 @@ class Labyrinthe:
             pile.empiler((i-1, j))   
 
     def generer(self):
+        """
+        J'ai ajouter la boucle for pour eviter que le labyrinthe soit parfait 
+        """
         pile = Pile()
         i, j = random.randint(0, self.hauteur-1), random.randint(0, self.largeur-1)
         pile.empiler((i, j))
@@ -66,11 +65,19 @@ class Labyrinthe:
             i, j = pile.sommet()
             directions = self.__directions_possibles(i, j)
             pile.depiler() if len(directions) == 0 else self.__abattre_mur(i, j, random.choice(directions), pile)
+        for k in range(int(4*self.hauteur*self.largeur * 0.12)): # Supprime environ x% des murs du labyrinthe parfait
+            x, y = random.randint(2, self.hauteur-2), random.randint(2, self.largeur-2)
+            direction = random.choice(["W", "E", "N", "S"])
+            self.__abattre_mur(x,y,direction,pile)         
+        
 
-
+""" 
+Quand on aura fini, il faudra separer les classes dans des fichiers distincts pour que ce soit plus clean
+mais pour l'instant, c'est plus pratique d'avoir la classe Labyrinthe à porter.
+Et ducoup il faudra faire des importations : import Labyrinthe from Labyrinthe par exemple
+"""
 class Jeux():
     def __init__(self):
-
         pass
 
     def creer_fenetre(self, couleur, titre, fenetre_principale, fenetre_existant_w=0, fenetre_existant_h=0):
@@ -93,6 +100,21 @@ class Jeux():
         self.liste_labels = [] # dico pour enregistrer les labels (cle) et leurs coordonnees (valeur). forme : [x, y, w, h]
         self.liste_lignes = [] # dico pour enregistrer les lignes (cle) et leurs coordonnees (valeur). forme : [x1, y1, x2, y2]
         
+    # FONCTIONS A FAIRE : Implémenter les compteurs et afficher sur l'ecran ceux-ci    
+    def creer_score(self):
+        pass # A FAIRE
+    def creer_compteur_munition(self):
+        pass # A FAIRE
+    def creer_compteur_vie(self):
+        pass # A FAIRE
+    def creer_compteur_transparence(self):
+        pass # A FAIRE
+    def creer_compteur_flash(self):
+        pass # A FAIRE
+    def creer_compteur_leurre(self):
+        pass # A FAIRE
+    def creer_compteur_boost_vitesse(self):
+        pass # A FAIRE
 
     # Sert à convertir des pourcentages X, Y en fonction de la taille de l'écran afin de pouvoir jouer sur plusieurs resolutions possibles
     def unite_relatif(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.01)
@@ -134,7 +156,6 @@ class Jeux():
                     self.creer_ligne(unite_i, unite_j, unite_i+long_mur_x, unite_j, epaisseur_relatif, green)
                 if self.labyrinthe.laby[i][j].murE:
                     self.creer_ligne(unite_i+long_mur_x, unite_j, unite_i+long_mur_x, unite_j+long_mur_y, epaisseur_relatif, green)
-        
 
     def boucle_jeu(self):
         while True :
@@ -151,7 +172,7 @@ class Jeux():
                 print("touche s clique")
 
             
-            jeu.afficher_labyrinthe(10, 14, 30, 2, 0.15)
+            
             #self.update()
 
             pygame.display.flip() # put your work on screen
@@ -162,7 +183,7 @@ class Jeux():
 if __name__ == "__main__":
     jeu = Jeux()
     jeu.creer_fenetre(black, "titre1", True)
-    
+    jeu.afficher_labyrinthe(40, 30, 10, 2, 0.15)
     #jeu.creer_label(500, 500, 200, 200, red)
     #jeu.creer_ligne(500, 500, 100, 100, 5, green)
     jeu.boucle_jeu()
