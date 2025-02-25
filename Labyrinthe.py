@@ -97,24 +97,18 @@ class Joueur():
         
 
     def deplacer(self, touche_pressee, longeur_saut_x, longeur_saut_y):
-        numerateur = 0.2
-        fluidite = 50
         if touche_pressee == "z" : 
-            self.direction_vue = "N"
-            self.coordonee_y -= longeur_saut_y/fluidite
-            time.sleep(numerateur/self.vitesse)
+            self.direction_vue = "N" # diriger le regard du joueur
+            self.coordonee_y -= self.vitesse/longeur_saut_y # deplacer le joueur
         if touche_pressee == "q" : 
             self.direction_vue = "W"
-            self.coordonee_x -= longeur_saut_x/fluidite
-            time.sleep(numerateur/self.vitesse)
+            self.coordonee_x -= self.vitesse/longeur_saut_x
         if touche_pressee == "s" : 
             self.direction_vue = "S"
-            self.coordonee_y += longeur_saut_y/fluidite
-            time.sleep(numerateur/self.vitesse)
+            self.coordonee_y += self.vitesse/longeur_saut_y
         if touche_pressee == "d" : 
             self.direction_vue = "E"
-            self.coordonee_x += longeur_saut_x/fluidite
-            time.sleep(numerateur/self.vitesse)
+            self.coordonee_x += self.vitesse/longeur_saut_x
 
     def devient_transparent(self):
         pass
@@ -154,8 +148,6 @@ class Jeux():
         """
         self.joueur = None
         self.clock = pygame.time.Clock()
-        self.liste_labels = [] # forme : [x, y, w, h]
-        self.liste_lignes = [] # forme : [x1, y1, x2, y2]
         pygame.init()
         if fenetre_principale : # 1ère fenetre en plein ecran
             self.fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -164,7 +156,6 @@ class Jeux():
             self.fenetre = pygame.display.set_mode((largeur, hauteur))
         self.fenetre.fill(couleur) 
         pygame.display.set_caption(titre)
-        
         #self.icon = pygame.image.load('logo.png')
         #pygame.display.set_icon(self.icon)
         
@@ -186,20 +177,16 @@ class Jeux():
         pass # A FAIRE
 
     # Sert a convertir des pourcentages X, Y en fonction de la taille de l'ecran afin de pouvoir jouer sur plusieurs resolutions possibles
-    def unite_relatif(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.018)
-    # le petit 0.018 a la fin c'est pour ajuster le desequilibre entre la largeur et la hauteur de l'ecran car la hauteur est toujours plus petite  
+    def unite_relatif(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.018) 
 
     def creer_ligne(self, x1, y1, x2, y2, epaisseur, couleur):  # x1, y1 = coordonees du debut de la ligne, x2 et y2 sont la fin
         self.ligne = pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
-        self.liste_lignes.append([x1, y1, x2, y2]) 
 
     def creer_label(self, coordonnee_x, coordonnee_y, largeur, hauteur, couleur):
         # creer un label de coordonees x, y et de taille largeur x hauteur
-        x, y = self.unite_relatif(coordonnee_x, coordonnee_y)
-        w, h = self.unite_relatif(largeur, hauteur) 
-        label = pygame.surface.Surface(w , h)
+        label = pygame.surface.Surface(self.unite_relatif(largeur, hauteur) )
         label.fill(couleur)
-        self.liste_labels.append([x, y, w, h])
+        self.fenetre.blit(label, (self.unite_relatif(coordonnee_x, coordonnee_y)))
     
 
     def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur_mur, epaisseur_mur, couleur):
@@ -237,70 +224,32 @@ class Jeux():
         case = self.labyrinthe.laby[coord_case_x][coord_case_y]
         self.joueur = Joueur(vitesse, case.x1, case.y1, direction, self.long_mur_x*0.6, self.long_mur_y*0.6, 
                              "./Logo_joueur.png", "./Logo_joueur.png", nb_flash, nb_leurre, cooldown_transparence)
-        self.verifier_emplacement_case_joueur()
-        
-    def verifier_emplacement_case_joueur(self):
-        # Peut etre optimiser en cherchant d'abord le i puis chercher le j (la on fait les 2 tt le temps)
-        for i in range(len(self.labyrinthe.laby)):
-            for j in range(len(self.labyrinthe.laby[i])):
-                case = self.labyrinthe.laby[i][j]
-                if case.x1<self.joueur.coordonee_x<case.x2 and case.y1<self.joueur.coordonee_y<case.y2:
-                    self.joueur.case_i,self.joueur.case_j = i, j
 
     def afficher_joueur(self):
         image =  pygame.transform.scale(self.joueur.image, (self.joueur.largeur, self.joueur.hauteur))  
         self.fenetre.blit(image, (self.joueur.coordonee_x-self.joueur.largeur*0.4, self.joueur.coordonee_y-self.joueur.hauteur*0.4))
-        
-    def murs_adjacents(self):
-        murs_proches = []
-        for i in range(-1, 2, 2):
-            for j in range(-1, 2, 2):
-                try :
-                    case = self.labyrinthe.laby[self.joueur.case_i+i][self.joueur.case_j+j]
-                    if case.murN : murs_proches.append((case.x1, case.y1), (case.x1, case.y2), (case.x2-case.x1, case.y2-case.y1))
-                    if case.murW : murs_proches.append((case.x1, case.y1), (case.x1, case.y2), (case.x2-case.x1, case.y2-case.y1))
-                    if case.murS : murs_proches.append((case.x2, case.y1), (case.x2, case.y2), (case.x2-case.x1, case.y2-case.y1))
-                    if case.murE : murs_proches.append((case.x1, case.y2), (case.x2, case.y2), (case.x2-case.x1, case.y2-case.y1))
-                except : pass # eviter l'erreur au bord de la map
-        return murs_proches
-        
-    
-    def check_collisions(self):
-        x1, y1, x2, y2 = (self.joueur.coordonee_x, self.joueur.coordonee_y, # en gros ces les coordonnees
-                        self.joueur.coordonee_x+self.joueur.largeur, # du joueur en comptant sa hitbox
-                        self.joueur.coordonee_y+self.joueur.hauteur)
-        murs = self.murs_adjacents()
-        for debut, fin, milieu in murs:
-            if (x1, y1 == debut[0], debut[1]) or (x1, y1 == fin[0], fin[1]) or (x1, y1 == milieu[0], milieu[1]):
-                return False
-        return True
-                
+
     def verifier_deplacement(self, touche_pressee):
-        
         case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
         i, j = self.joueur.case_i, self.joueur.case_j
+
         if touche_pressee == "z" and case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
-            if case.murN: self.joueur.coordonee_y = case.y1+self.joueur.hauteur/1.9 # Si la directions n'est pas possible (donc qu'il y a un mur)
+            if case.murN: self.joueur.coordonee_y = case.y1+self.joueur.hauteur/1.9 # Si il y a un mur, on repousse le joueur
             elif case.y1>self.joueur.coordonee_y: self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
-            else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i, j-1
+
         if touche_pressee == "q" and case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
             if case.murW : self.joueur.coordonee_x = case.x1+self.joueur.hauteur/1.9
             elif case.x1>self.joueur.coordonee_x: self.joueur.case_i -= 1
-            else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i-1, j
 
         if touche_pressee == "s" and case.y2<self.joueur.coordonee_y+self.joueur.hauteur/2: 
             if case.murS : self.joueur.coordonee_y = case.y2-self.joueur.hauteur/1.9
             elif case.y2<self.joueur.coordonee_y : self.joueur.case_j += 1
-            else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i, j+1
 
         if touche_pressee == "d" and case.x2<self.joueur.coordonee_x+self.joueur.largeur/2: 
             if case.murE : self.joueur.coordonee_x = case.x2-self.joueur.hauteur/1.9
             elif case.x2<self.joueur.coordonee_x : self.joueur.case_i += 1
-            else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i+1, j
 
-        self.verifier_emplacement_case_joueur()
-        if self.check_collisions():
-            self.joueur.deplacer(touche_pressee, self.long_mur_x, self.long_mur_y)
+        self.joueur.deplacer(touche_pressee, self.long_mur_x, self.long_mur_y)
         
     def boucle_jeu(self):
         while True :
@@ -311,23 +260,24 @@ class Jeux():
                     pygame.quit()
                     sys.exit()
             keys = pygame.key.get_pressed()
-            
-            
+
             if keys[pygame.K_z]: self.verifier_deplacement("z")
             if keys[pygame.K_q]: self.verifier_deplacement("q")
             if keys[pygame.K_s]: self.verifier_deplacement("s")
             if keys[pygame.K_d]: self.verifier_deplacement("d")
 
+            # simuler des appuie de touches constament afin de bien repousser le joueur au contact du "coin bugge"
             self.verifier_deplacement("z")
             self.verifier_deplacement("q")
             self.verifier_deplacement("s")
             self.verifier_deplacement("d")
-            self.fenetre.fill(black)
-            
-            #self.update()
+
+            self.fenetre.fill(black) # Tout effacer
+
+            # Tout charger
             self.afficher_labyrinthe()
             self.afficher_joueur()
-            pygame.display.flip() # put your work on screen
+            pygame.display.flip() # tout afficher
 
             self.clock.tick(60)  # limites les FPS a 60
 
@@ -336,9 +286,6 @@ if __name__ == "__main__":
     jeu = Jeux(black, "titre1", True)
     jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2, cyan)
     jeu.afficher_labyrinthe()
-    jeu.creer_joueur(1, 1, "S", 100, 1, 1, 1)
+    jeu.creer_joueur(0,0, "S", 60, 1, 1, 1)
     
-    
-    #jeu.creer_label(500, 500, 200, 200, red)
-    #jeu.creer_ligne(500, 500, 100, 100, 5, green)
     jeu.boucle_jeu()
