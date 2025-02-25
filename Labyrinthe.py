@@ -280,7 +280,7 @@ class Jeux():
         case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
         i, j = self.joueur.case_i, self.joueur.case_j
         if touche_pressee == "z" and case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
-            if case.murN:   return None # Si la directions n'est pas possible (donc qu'il y a un mur), on fait rien
+            if case.murN:   self.joueur.coordonee_y = case.y1+self.joueur.hauteur/1.8 # Si la directions n'est pas possible (donc qu'il y a un mur), on fait rien
             elif case.y1>self.joueur.coordonee_y: self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
             else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i, j-1
         if touche_pressee == "q" and case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
