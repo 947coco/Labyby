@@ -83,19 +83,22 @@ class Joueur():
                  chemin_image_transparence, nb_flash, nb_leurre, cooldown_transparence):
         self.vitesse = vitesse
         self.image = pygame.image.load(chemin_image).convert()
-        #self.image_transparence = pygame.image.load(chemin_image_transparence).convert() # 2nd image pour devenir transparent/invisible 
+        self.image_transparence = pygame.image.load(chemin_image).convert_alpha()
+        for y in range(self.image_transparence.get_height()):
+            for x in range(self.image_transparence.get_width()):
+                r, g, b, a = self.image_transparence.get_at((x, y))
+                self.image_transparence.set_at((x, y), (r, g, b, 160)) # 0 = invisible, 255 = visible
         self.cooldown_transparence = cooldown_transparence
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
         self.coordonee_x, self.coordonee_y = coordonee_x, coordonee_y # coordonnes sur l'ecran
         self.case_i, self.case_j = 0,0 # Sur quelle case se trouve le joueur
-        self.case_chevauchee_i, self.case_chevauchee_j = False, False
         self.largeur, self.hauteur = largeur, hauteur # dimensions de l'image representant le joueur
         self.direction_vue = direction_vue # direction du regard du joueur
         
 
     def deplacer(self, touche_pressee, longeur_saut_x, longeur_saut_y):
-        numerateur = 0.1
-        fluidite = 45
+        numerateur = 0.2
+        fluidite = 50
         if touche_pressee == "z" : 
             self.direction_vue = "N"
             self.coordonee_y -= longeur_saut_y/fluidite
@@ -232,7 +235,7 @@ class Jeux():
 
     def creer_joueur(self, coord_case_x, coord_case_y, direction, vitesse, nb_flash, nb_leurre, cooldown_transparence):
         case = self.labyrinthe.laby[coord_case_x][coord_case_y]
-        self.joueur = Joueur(vitesse, case.x1-self.long_mur_x, case.y1-self.long_mur_y, direction, self.long_mur_x*0.8, self.long_mur_y*0.8, 
+        self.joueur = Joueur(vitesse, case.x1, case.y1, direction, self.long_mur_x*0.6, self.long_mur_y*0.6, 
                              "./Logo_joueur.png", "./Logo_joueur.png", nb_flash, nb_leurre, cooldown_transparence)
         self.verifier_emplacement_case_joueur()
         
@@ -243,11 +246,10 @@ class Jeux():
                 case = self.labyrinthe.laby[i][j]
                 if case.x1<self.joueur.coordonee_x<case.x2 and case.y1<self.joueur.coordonee_y<case.y2:
                     self.joueur.case_i,self.joueur.case_j = i, j
-                    print(i, j)
 
     def afficher_joueur(self):
         image =  pygame.transform.scale(self.joueur.image, (self.joueur.largeur, self.joueur.hauteur))  
-        self.fenetre.blit(image, (self.joueur.coordonee_x, self.joueur.coordonee_y))
+        self.fenetre.blit(image, (self.joueur.coordonee_x-self.joueur.largeur*0.4, self.joueur.coordonee_y-self.joueur.hauteur*0.4))
         
     def murs_adjacents(self):
         murs_proches = []
@@ -255,24 +257,23 @@ class Jeux():
             for j in range(-1, 2, 2):
                 try :
                     case = self.labyrinthe.laby[self.joueur.case_i+i][self.joueur.case_j+j]
-                    if case.murN : murs_proches.append((case.x1, case.y1, case.x1, case.y2), (i, j))
-                    if case.murW : murs_proches.append((case.x1, case.y1, case.x1, case.y2), (i, j))
-                    if case.murS : murs_proches.append((case.x2, case.y1, case.x2, case.y2), (i, j))
-                    if case.murE : murs_proches.append((case.x1, case.y2, case.x2, case.y2), (i, j))
+                    if case.murN : murs_proches.append((case.x1, case.y1), (case.x1, case.y2), (case.x2-case.x1, case.y2-case.y1))
+                    if case.murW : murs_proches.append((case.x1, case.y1), (case.x1, case.y2), (case.x2-case.x1, case.y2-case.y1))
+                    if case.murS : murs_proches.append((case.x2, case.y1), (case.x2, case.y2), (case.x2-case.x1, case.y2-case.y1))
+                    if case.murE : murs_proches.append((case.x1, case.y2), (case.x2, case.y2), (case.x2-case.x1, case.y2-case.y1))
                 except : pass # eviter l'erreur au bord de la map
         return murs_proches
         
-    def zone_joueur(self):
-        return (self.joueur.coordonee_x, self.joueur.coordonee_y, # coordonnees x et y en haut a gauche 
-                self.joueur.coordonee_x+self.joueur.largeur, # coordonnee x a droite
-                self.joueur.coordonee_y+self.joueur.hauteur) # coordonnee y en bas
-        
     
     def check_collisions(self):
-        x1, y1, x2, y2 = self.zone_joueur()
+        x1, y1, x2, y2 = (self.joueur.coordonee_x, self.joueur.coordonee_y, # en gros ces les coordonnees
+                        self.joueur.coordonee_x+self.joueur.largeur, # du joueur en comptant sa hitbox
+                        self.joueur.coordonee_y+self.joueur.hauteur)
         murs = self.murs_adjacents()
-        for position, case in murs:
-            pass
+        for debut, fin, milieu in murs:
+            if (x1, y1 == debut[0], debut[1]) or (x1, y1 == fin[0], fin[1]) or (x1, y1 == milieu[0], milieu[1]):
+                return False
+        return True
                 
     def verifier_deplacement(self, touche_pressee):
         
@@ -298,7 +299,8 @@ class Jeux():
             else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i+1, j
 
         self.verifier_emplacement_case_joueur()
-        self.joueur.deplacer(touche_pressee, self.long_mur_x, self.long_mur_y)
+        if self.check_collisions():
+            self.joueur.deplacer(touche_pressee, self.long_mur_x, self.long_mur_y)
         
     def boucle_jeu(self):
         while True :
