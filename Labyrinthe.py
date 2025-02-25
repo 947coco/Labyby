@@ -280,21 +280,21 @@ class Jeux():
         case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
         i, j = self.joueur.case_i, self.joueur.case_j
         if touche_pressee == "z" and case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
-            if case.murN:   self.joueur.coordonee_y = case.y1+self.joueur.hauteur/1.8 # Si la directions n'est pas possible (donc qu'il y a un mur), on fait rien
+            if case.murN: self.joueur.coordonee_y = case.y1+self.joueur.hauteur/1.9 # Si la directions n'est pas possible (donc qu'il y a un mur)
             elif case.y1>self.joueur.coordonee_y: self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
             else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i, j-1
         if touche_pressee == "q" and case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
-            if case.murW : return None
+            if case.murW : self.joueur.coordonee_x = case.x1+self.joueur.hauteur/1.9
             elif case.x1>self.joueur.coordonee_x: self.joueur.case_i -= 1
             else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i-1, j
 
         if touche_pressee == "s" and case.y2<self.joueur.coordonee_y+self.joueur.hauteur/2: 
-            if case.murS : return None
+            if case.murS : self.joueur.coordonee_y = case.y2-self.joueur.hauteur/1.9
             elif case.y2<self.joueur.coordonee_y : self.joueur.case_j += 1
             else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i, j+1
 
         if touche_pressee == "d" and case.x2<self.joueur.coordonee_x+self.joueur.largeur/2: 
-            if case.murE : return None
+            if case.murE : self.joueur.coordonee_x = case.x2-self.joueur.hauteur/1.9
             elif case.x2<self.joueur.coordonee_x : self.joueur.case_i += 1
             else : self.joueur.case_chevauchee_i, self.joueur.case_chevauchee_j = i+1, j
 
@@ -318,6 +318,10 @@ class Jeux():
             if keys[pygame.K_s]: self.verifier_deplacement("s")
             if keys[pygame.K_d]: self.verifier_deplacement("d")
 
+            self.verifier_deplacement("z")
+            self.verifier_deplacement("q")
+            self.verifier_deplacement("s")
+            self.verifier_deplacement("d")
             self.fenetre.fill(black)
             
             #self.update()
@@ -332,7 +336,7 @@ if __name__ == "__main__":
     jeu = Jeux(black, "titre1", True)
     jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2, cyan)
     jeu.afficher_labyrinthe()
-    jeu.creer_joueur(1, 1, "S", 10, 1, 1, 1)
+    jeu.creer_joueur(1, 1, "S", 100, 1, 1, 1)
     
     
     #jeu.creer_label(500, 500, 200, 200, red)
