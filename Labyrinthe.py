@@ -1,5 +1,7 @@
 import pygame, codecs, random, time, sys
 
+""" Ne mettez aucun accent sinon ça affihce de mauvais caractères"""
+
 # definition des couleurs primaires/principales
 white, black          = (255, 255, 255), (0, 0, 0)
 red, green, blue      = (255, 0, 0), (0, 255, 0), (0, 0, 255)
@@ -164,7 +166,7 @@ class Ennemie():
     def chemin_depart_a_arrivee(self, graphe, depart, arrivee):
         """graphe = dictionnaire d'adjacence, depart et arrivee = tuples de coordonnees de cases"""
         chemin_plus_court = [] # chemin final le plus court possible
-        case_plus_rapprochee = [] # liste temporaire afin de comparer laquelle des cases se rapproche plus du joueur
+        case_plus_rapprochee = [] # liste temporaire afin de comparer laquelle des cases voisines se rapproche plus du joueur (10 lignes plus bas)
         f = File()
         f.enfiler(depart)
         while not f.est_vide():
@@ -180,10 +182,10 @@ class Ennemie():
                 distance_minimum = min(case_plus_rapprochee)
                 meilleur_case = graphe[tmp][distance_minimum.index()]
                 if meilleur_case in chemin_plus_court or f.present(meilleur_case):
-                    # si la case est deja dans la file ou le chemin, on la supprime
+                    # si la case est deja dans la file ou le chemin, on la supprime (et le while recommence)
                     case_plus_rapprochee.remove(distance_minimum) 
                 else :
-                    # si cette case n'est pas deja dans la file ou le chemin, on l'ajoute au chemin
+                    # si cette case n'est pas deja dans la file et pas dans le chemin, on l'ajoute au chemin
                     chemin_plus_court.append(meilleur_case)
                     # on efface la liste temporaire pour une nouvelle utilisation
                     case_plus_rapprochee = []
@@ -208,6 +210,7 @@ class Jeux():
         (exemple : fenetre de pause, d'acceuil...)
         """
         self.joueur = None
+        self.labels = [] # bdd afin d'afficher tout les labels
         self.clock = pygame.time.Clock()
         pygame.init()
         if fenetre_principale : # 1ère fenetre en plein ecran
@@ -240,15 +243,18 @@ class Jeux():
     # Sert a convertir des pourcentages X, Y en fonction de la taille de l'ecran afin de pouvoir jouer sur plusieurs resolutions possibles
     def unite_relatif(self, X, Y): return int(pygame.display.Info().current_w*X*0.01), int(pygame.display.Info().current_h *Y*0.018) 
 
-    def creer_ligne(self, x1, y1, x2, y2, epaisseur, couleur):  # x1, y1 = coordonees du debut de la ligne, x2 et y2 sont la fin
-        self.ligne = pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
+    def afficher_ligne(self, x1, y1, x2, y2, epaisseur, couleur):  pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
+        
 
-    def creer_label(self, coordonnee_x, coordonnee_y, largeur, hauteur, couleur):
+    def creer_label(self, coordonnee_x, coordonnee_y, largeur, hauteur, couleur, description):
         # creer un label de coordonees x, y et de taille largeur x hauteur
-        label = pygame.surface.Surface(self.unite_relatif(largeur, hauteur) )
+        w, h = self.unite_relatif(largeur, hauteur) 
+        x, y = self.unite_relatif(coordonnee_x, coordonnee_y) 
+        label = pygame.surface.Surface((w, h))
         label.fill(couleur)
-        self.fenetre.blit(label, (self.unite_relatif(coordonnee_x, coordonnee_y)))
-    
+        self.labels.append([label, x, y, description, w, h])
+        
+    def afficher_label(self): [self.fenetre.blit(sous_liste[0], (sous_liste[1], sous_liste[2])) for sous_liste in self.labels]
 
     def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur_mur, epaisseur_mur, couleur):
         # esthetique du labyrinthe en rapport à l'affichage du labyrinthe avec pygame 
@@ -276,10 +282,10 @@ class Jeux():
                 x2, y2 = x1+self.long_mur_x, y1+self.long_mur_y 
                 case = self.labyrinthe.laby[i][j]
                 case.assigner_coordonnees(x1, y1, x2, y2)
-                if case.murS: self.creer_ligne(x1, y2, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murW: self.creer_ligne(x1, y1, x1, y2, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murN: self.creer_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murE: self.creer_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                if case.murS: self.afficher_ligne(x1, y2, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                if case.murW: self.afficher_ligne(x1, y1, x1, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
+                if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
 
     def creer_joueur(self, coord_case_x, coord_case_y, direction, vitesse, nb_flash, nb_leurre, cooldown_transparence):
         case = self.labyrinthe.laby[coord_case_x][coord_case_y]
@@ -317,20 +323,24 @@ class Jeux():
             for evenement in pygame.event.get():
                 if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
                     # Bouton exit
-                    #if exit_xy[0] <= evenement.pos[0] <= exit_xy[0] + exit_wh[0] and exit_xy[1] <= evenement.pos[1] <= exit_xy[1] + exit_wh[1]:
-                    pygame.quit()
-                    sys.exit()
-                # Vérification si la touche TAB est enfoncée
-                if evenement.type == pygame.KEYDOWN:  # Quand une touche est enfoncee
-                    if evenement.key == pygame.K_LSHIFT: # courir avec maj/shift
-                        self.joueur.vitesse *= 2 
+                    for label in self.labels:
+                        # si le bouton est quitter et coordonnee_x < x_souris < coordonnee_x+largeur  et coordonnee_y < y_souris < coordonnee_y+hauteur
+                        if label[3] == "quitter" and label[1] < evenement.pos[0] < label[1]+label[4] and label[2] < evenement.pos[1] < label[2]+label[5]:
+                            pygame.quit() # on detruit la fenetre pygame
+                            sys.exit() # on termine le processus correctement
+                
+                # Verifier si une touche est enfoncee
+                if evenement.type == pygame.KEYDOWN:  
+                    if evenement.key == pygame.K_LSHIFT: # rester appuyer sur maj/shift
+                        self.joueur.vitesse *= 2 # courir
 
-                if evenement.type == pygame.KEYUP: # Quand une touche est relachee
-                    if evenement.key == pygame.K_LSHIFT: # relacher courir
-                        self.joueur.vitesse /= 2 
+                 # Verifier si une touche est relachee
+                if evenement.type == pygame.KEYUP:
+                    if evenement.key == pygame.K_LSHIFT: # relacher maj/shift
+                        self.joueur.vitesse /= 2 # ne plus courir
             keys = pygame.key.get_pressed()
 
-            # On aurait pu les detecter dans un KEYDOWN mais ca marche nickel donc on change rien
+            # On aurait pu les detecter dans un KEYDOWN mais ca marche nickel sans donc on change rien
             if keys[pygame.K_z]: self.verifier_deplacement("z")
             if keys[pygame.K_q]: self.verifier_deplacement("q")
             if keys[pygame.K_s]: self.verifier_deplacement("s")
@@ -348,7 +358,8 @@ class Jeux():
             # Tout charger
             self.afficher_labyrinthe()
             self.afficher_joueur()
-            pygame.display.flip() # tout afficher
+            self.afficher_label()
+            pygame.display.flip() # tout réafficher
 
             self.clock.tick(60)  # limites les FPS a 60
 
@@ -356,7 +367,8 @@ class Jeux():
 if __name__ == "__main__":
     jeu = Jeux(black, "titre1", True)
     jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2, cyan)
+    jeu.creer_labyrinthe(10, 5, 6, 6, 2, 0.2, red) 
     jeu.afficher_labyrinthe()
+    jeu.creer_label(96, 0, 6, 4, red, "quitter")
     jeu.creer_joueur(0,0, "S", 30, 1, 1, 1)
-    
     jeu.boucle_jeu()
