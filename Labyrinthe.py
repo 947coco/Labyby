@@ -6,6 +6,19 @@ red, green, blue      = (255, 0, 0), (0, 255, 0), (0, 0, 255)
 yellow, cyan, magenta = (255, 255, 0), (0, 255, 255), (255, 0, 255)
 orange, purple, pink  = (255, 165, 0), (128, 0, 128), (233, 40, 99)
 
+class File:
+    def __init__(self): self.contenu=[]
+    def est_vide(self): return self.contenu==[]
+    def enfiler(self,x): self.contenu.append(x)
+    def taille(self): return len(self.contenu)
+    def present(self,x): return x in self.contenu
+    def defiler(self):
+        assert not self.est_vide(),"File vide !"
+        return self.contenu.pop(0)   #ou del self.file[-1]
+    def sommet(self):
+        assert not self.est_vide(),"File vide !"
+        return self.contenu[0]
+    
 class Pile:
     def __init__(self):     self.contenu=[]
     def est_vide(self):     return self.contenu==[]
@@ -69,8 +82,22 @@ class Labyrinthe:
         for k in range(int(4*self.hauteur*self.largeur * 0.12)): # Supprime environ x% des murs du labyrinthe parfait
             x, y = random.randint(2, self.hauteur-2), random.randint(2, self.largeur-2)
             direction = random.choice(["W", "E", "N", "S"])
-            self.__abattre_mur(x,y,direction,pile)         
-        
+            self.__abattre_mur(x,y,direction,pile) 
+
+        self.graphe = self.creer_un_graphe()    
+
+    def creer_un_graphe(self):
+        # initialiser toutes les cases (i, j) sans voisins [] pour l'instant
+        dico_adjacence = {(i, j): [] for i in range(self.largeur) for j in range(self.hauteur)}
+        # ajouter les cases voisines grace a la methode directions possibles
+        for i in range(self.largeur):
+            for j in range(self.hauteur):
+                case = self.laby[j][i]
+                if case.murN : dico_adjacence[i, j].append((i, j-1))
+                if case.murS : dico_adjacence[i, j].append((i, j+1))
+                if case.murE : dico_adjacence[i, j].append((i+1, j))
+                if case.murW : dico_adjacence[i, j].append((i-1, j))
+        return dico_adjacence
 
 """ 
 Quand on aura fini, il faudra separer les classes dans des fichiers distincts pour que ce soit plus clean
@@ -126,6 +153,40 @@ class Ennemie():
     def __init__(self, labyrinthe, vitesse, chemin_image):
         self.vitesse = vitesse
         self.chemin_image = chemin_image
+
+    def distance_entre_2_cases(self, depart, arrivee):
+        # renvoie un seul nombre representant une distance au point d'arrivee
+        i1, j1 = depart
+        i2, j2 = arrivee
+        return (i2-i1) + (j2-j1)
+    
+    # Basee sur la seance C39 bfs_iteratif mais tres modifiee
+    def chemin_depart_a_arrivee(self, graphe, depart, arrivee):
+        """graphe = dictionnaire d'adjacence, depart et arrivee = tuples de coordonnees de cases"""
+        chemin_plus_court = [] # chemin final le plus court possible
+        case_plus_rapprochee = [] # liste temporaire afin de comparer laquelle des cases se rapproche plus du joueur
+        f = File()
+        f.enfiler(depart)
+        while not f.est_vide():
+            tmp = f.defiler()
+            if tmp not in chemin_plus_court:
+                chemin_plus_court.append(tmp)
+            if tmp == arrivee : return chemin_plus_court # ajout de la condition de rencontre avec la case d'arrivee
+            for voisin in graphe[tmp]:
+                # on enregistre les distances moyennes des differents voisins de la case dans la liste case_plus_rapprochee
+                case_plus_rapprochee.append(self.distance_entre_2_cases(voisin, arrivee)) 
+            while case_plus_rapprochee != []:
+                # on identifie la distance minimum parmis les voisins -> on choisi la case correspondante
+                distance_minimum = min(case_plus_rapprochee)
+                meilleur_case = graphe[tmp][distance_minimum.index()]
+                if meilleur_case in chemin_plus_court or f.present(meilleur_case):
+                    # si la case est deja dans la file ou le chemin, on la supprime
+                    case_plus_rapprochee.remove(distance_minimum) 
+                else :
+                    # si cette case n'est pas deja dans la file ou le chemin, on l'ajoute au chemin
+                    chemin_plus_court.append(meilleur_case)
+                    # on efface la liste temporaire pour une nouvelle utilisation
+                    case_plus_rapprochee = []
 
 
 class Projectile(): # Flash, leurre... (tout ce qui est jetable)
@@ -259,12 +320,22 @@ class Jeux():
                     #if exit_xy[0] <= evenement.pos[0] <= exit_xy[0] + exit_wh[0] and exit_xy[1] <= evenement.pos[1] <= exit_xy[1] + exit_wh[1]:
                     pygame.quit()
                     sys.exit()
+                # Vérification si la touche TAB est enfoncée
+                if evenement.type == pygame.KEYDOWN:  # Quand une touche est enfoncee
+                    if evenement.key == pygame.K_LSHIFT: # courir avec maj/shift
+                        self.joueur.vitesse *= 2 
+
+                if evenement.type == pygame.KEYUP: # Quand une touche est relachee
+                    if evenement.key == pygame.K_LSHIFT: # relacher courir
+                        self.joueur.vitesse /= 2 
             keys = pygame.key.get_pressed()
 
+            # On aurait pu les detecter dans un KEYDOWN mais ca marche nickel donc on change rien
             if keys[pygame.K_z]: self.verifier_deplacement("z")
             if keys[pygame.K_q]: self.verifier_deplacement("q")
             if keys[pygame.K_s]: self.verifier_deplacement("s")
             if keys[pygame.K_d]: self.verifier_deplacement("d")
+            
 
             # simuler des appuie de touches constament afin de bien repousser le joueur au contact du "coin bugge"
             self.verifier_deplacement("z")
@@ -286,6 +357,6 @@ if __name__ == "__main__":
     jeu = Jeux(black, "titre1", True)
     jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2, cyan)
     jeu.afficher_labyrinthe()
-    jeu.creer_joueur(0,0, "S", 60, 1, 1, 1)
+    jeu.creer_joueur(0,0, "S", 30, 1, 1, 1)
     
     jeu.boucle_jeu()
