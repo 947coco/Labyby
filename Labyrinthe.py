@@ -111,24 +111,21 @@ class Joueur():
     def __init__(self, vitesse, coordonee_x, coordonee_y, direction_vue, largeur, hauteur, chemin_image, 
                  chemin_image_transparence, nb_flash, nb_leurre, cooldown_transparence):
         self.vitesse = vitesse
-        self.image = pygame.image.load(chemin_image).convert()
-        self.image_transparence = pygame.image.load(chemin_image).convert_alpha()
-        for y in range(self.image_transparence.get_height()):
-            for x in range(self.image_transparence.get_width()):
-                r, g, b, a = self.image_transparence.get_at((x, y))
-                self.image_transparence.set_at((x, y), (r, g, b, 160)) # 0 = invisible, 255 = visible
+        self.veut_detruire = False
+        self.image_droite = pygame.image.load(chemin_image).convert_alpha()
+        self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
         self.cooldown_transparence = cooldown_transparence
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
         self.coordonee_x, self.coordonee_y = coordonee_x, coordonee_y # coordonnes sur l'ecran
         self.case_i, self.case_j = 0,0 # Sur quelle case se trouve le joueur
         self.largeur, self.hauteur = largeur, hauteur # dimensions de l'image representant le joueur
         self.direction_vue = direction_vue # direction du regard du joueur
-        
+
 
     def deplacer(self, touche_pressee, longeur_saut_x, longeur_saut_y):
-        if touche_pressee == "z" : 
+        if touche_pressee == "z" : # si la touche pressee est "z"
             self.direction_vue = "N" # diriger le regard du joueur
-            self.coordonee_y -= self.vitesse/longeur_saut_y # deplacer le joueur
+            self.coordonee_y -= self.vitesse/longeur_saut_y # deplacer le joueur en fonction de sa vitesse
         if touche_pressee == "q" : 
             self.direction_vue = "W"
             self.coordonee_x -= self.vitesse/longeur_saut_x
@@ -293,34 +290,62 @@ class Jeux():
                              "./Logo_joueur.png", "./Logo_joueur.png", nb_flash, nb_leurre, cooldown_transparence)
 
     def afficher_joueur(self):
-        image =  pygame.transform.scale(self.joueur.image, (self.joueur.largeur, self.joueur.hauteur))  
+        direction = self.verifier_direction()
+        image =  pygame.transform.scale(direction, (self.joueur.largeur, self.joueur.hauteur))  
         self.fenetre.blit(image, (self.joueur.coordonee_x-self.joueur.largeur*0.4, self.joueur.coordonee_y-self.joueur.hauteur*0.4))
 
+    def verifier_direction(self):
+        if self.joueur.direction_vue == "W": return self.joueur.image_gauche
+        if self.joueur.direction_vue == "E": return self.joueur.image_droite
+        
     def verifier_deplacement(self, touche_pressee):
         case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
         i, j = self.joueur.case_i, self.joueur.case_j
 
         if touche_pressee == "z" and case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
-            if case.murN: self.joueur.coordonee_y = case.y1+self.joueur.hauteur/1.9 # Si il y a un mur, on repousse le joueur
-            elif case.y1>self.joueur.coordonee_y: self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
+            if case.murN :                              self.joueur.coordonee_y = case.y1+self.joueur.hauteur/2 # Si il y a un mur, on repousse le joueur
+            elif case.y1>self.joueur.coordonee_y:       self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
 
         if touche_pressee == "q" and case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
-            if case.murW : self.joueur.coordonee_x = case.x1+self.joueur.hauteur/1.9
-            elif case.x1>self.joueur.coordonee_x: self.joueur.case_i -= 1
+            if case.murW :                              self.joueur.coordonee_x = case.x1+self.joueur.largeur/2
+            elif case.x1>self.joueur.coordonee_x:       self.joueur.case_i -= 1
 
         if touche_pressee == "s" and case.y2<self.joueur.coordonee_y+self.joueur.hauteur/2: 
-            if case.murS : self.joueur.coordonee_y = case.y2-self.joueur.hauteur/1.9
-            elif case.y2<self.joueur.coordonee_y : self.joueur.case_j += 1
+            if case.murS :                              self.joueur.coordonee_y = case.y2-self.joueur.hauteur/2
+            elif case.y2<self.joueur.coordonee_y :       self.joueur.case_j += 1
 
         if touche_pressee == "d" and case.x2<self.joueur.coordonee_x+self.joueur.largeur/2: 
-            if case.murE : self.joueur.coordonee_x = case.x2-self.joueur.hauteur/1.9
-            elif case.x2<self.joueur.coordonee_x : self.joueur.case_i += 1
+            if case.murE :                              self.joueur.coordonee_x = case.x2-self.joueur.largeur/2
+            elif case.x2<self.joueur.coordonee_x :      self.joueur.case_i += 1
 
         self.joueur.deplacer(touche_pressee, self.long_mur_x, self.long_mur_y)
         
-    def boucle_jeu(self):
-        while True :
-            for evenement in pygame.event.get():
+    def si_joueur_veut_detruire(self):
+        if self.joueur.veut_detruire : 
+            case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
+            if self.joueur.direction_vue == "S" and case.murS and self.joueur.case_j != self.labyrinthe.hauteur:
+                self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, self.epaisseur_mur*2, purple)
+                print('mur doit changer de couleur')
+            if self.joueur.direction_vue == "N" and case.murN and self.joueur.case_j != 0:
+                self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, self.epaisseur_mur*2, purple)
+                print('mur doit changer de couleur')
+            if self.joueur.direction_vue == "E" and case.murE and self.joueur.case_i != self.labyrinthe.largeur:
+                self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, self.epaisseur_mur*2, purple)
+                print('mur doit changer de couleur')
+            if self.joueur.direction_vue == "W" and case.murW and self.joueur.case_i != 0:
+                self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, self.epaisseur_mur*2, purple)
+                print('mur doit changer de couleur')
+
+    def verifications_touches_calvier_appuiees(self):
+        touche_clavier = pygame.key.get_pressed()
+        # On aurait pu les detecter dans un KEYDOWN mais ca marche nicke donc on change rien
+        if touche_clavier[pygame.K_z]: self.verifier_deplacement("z")
+        if touche_clavier[pygame.K_q]: self.verifier_deplacement("q")
+        if touche_clavier[pygame.K_s]: self.verifier_deplacement("s")
+        if touche_clavier[pygame.K_d]: self.verifier_deplacement("d")
+
+    def verifications_autres_touches(self):
+        for evenement in pygame.event.get():
                 if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
                     # Bouton exit
                     for label in self.labels:
@@ -329,24 +354,20 @@ class Jeux():
                             pygame.quit() # on detruit la fenetre pygame
                             sys.exit() # on termine le processus correctement
                 
-                # Verifier si une touche est enfoncee
-                if evenement.type == pygame.KEYDOWN:  
-                    if evenement.key == pygame.K_LSHIFT: # rester appuyer sur maj/shift
-                        self.joueur.vitesse *= 2 # courir
+               
+                if evenement.type == pygame.KEYDOWN:    # Verifier si une touche est enfoncee 
+                    if evenement.key == pygame.K_LSHIFT: self.joueur.vitesse *= 1.4 # courir
+                    if evenement.key == pygame.K_SPACE:  self.joueur.veut_detruire = not self.joueur.veut_detruire
 
-                 # Verifier si une touche est relachee
-                if evenement.type == pygame.KEYUP:
-                    if evenement.key == pygame.K_LSHIFT: # relacher maj/shift
-                        self.joueur.vitesse /= 2 # ne plus courir
-            keys = pygame.key.get_pressed()
 
-            # On aurait pu les detecter dans un KEYDOWN mais ca marche nickel sans donc on change rien
-            if keys[pygame.K_z]: self.verifier_deplacement("z")
-            if keys[pygame.K_q]: self.verifier_deplacement("q")
-            if keys[pygame.K_s]: self.verifier_deplacement("s")
-            if keys[pygame.K_d]: self.verifier_deplacement("d")
+                if evenement.type == pygame.KEYUP:   # Verifier si une touche est relachee
+                    if evenement.key == pygame.K_LSHIFT: self.joueur.vitesse /= 1.4 # ne plus courir
+                        
+    def boucle_jeu(self):
+        while True :
+            self.verifications_touches_calvier_appuiees()
+            self.verifications_autres_touches()
             
-
             # simuler des appuie de touches constament afin de bien repousser le joueur au contact du "coin bugge"
             self.verifier_deplacement("z")
             self.verifier_deplacement("q")
@@ -354,9 +375,9 @@ class Jeux():
             self.verifier_deplacement("d")
 
             self.fenetre.fill(black) # Tout effacer
-
             # Tout charger
             self.afficher_labyrinthe()
+            self.si_joueur_veut_detruire()
             self.afficher_joueur()
             self.afficher_label()
             pygame.display.flip() # tout réafficher
@@ -366,7 +387,6 @@ class Jeux():
 
 if __name__ == "__main__":
     jeu = Jeux(black, "titre1", True)
-    jeu.creer_labyrinthe(30, 20, 6, 6, 2, 0.2, cyan)
     jeu.creer_labyrinthe(10, 5, 6, 6, 2, 0.2, red) 
     jeu.afficher_labyrinthe()
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
