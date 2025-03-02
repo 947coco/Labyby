@@ -143,7 +143,7 @@ class Ennemie():
         self.chemin_image = chemin_image
 
     def distance_entre_2_cases(self, depart, arrivee):
-        # Sert a savoir si la case depart se rapproche de la case arriver dans la methode en-dessous
+        # Sert a savoir si la case depart se rapproche de la case arriver (voir methode en-dessous)
         i1, j1 = depart
         i2, j2 = arrivee
         return (i2-i1) + (j2-j1)
@@ -164,14 +164,14 @@ class Ennemie():
                 # on enregistre les distances moyennes des differents voisins de la case dans la liste case_plus_rapprochee
                 case_plus_rapprochee.append(self.distance_entre_2_cases(voisin, arrivee)) 
             while case_plus_rapprochee != []:
-                # on identifie la distance minimum parmis les voisins -> on choisi la case correspondante
-                distance_minimum = min(case_plus_rapprochee)
+                distance_minimum = min(case_plus_rapprochee) # on identifie la distance minimum parmis les voisins -> on choisi la case correspondante
                 meilleur_case = graphe[tmp][distance_minimum.index()]
                 if meilleur_case in chemin_plus_court or f.present(meilleur_case):
                     case_plus_rapprochee.remove(distance_minimum)  # si la case est deja dans la file ou le chemin, on la supprime (et le while recommence)
                 else :
                     chemin_plus_court.append(meilleur_case) # si cette case n'est pas deja dans la file et pas dans le chemin, on l'ajoute au chemin
                     case_plus_rapprochee = [] # on efface la liste temporaire pour une nouvelle utilisation
+            else : print("erreur dans la comparaison des cases voisines")
 
 
 class Projectile(): # Flash, leurre... (tout ce qui est jetable)
@@ -179,19 +179,13 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
         self.vitesse = vitesse
         self.chemin_image = chemin_image
         self.quantitee = quantitee
-        
-
+    
     def lancement(self, direction_du_lance, position_joueur_x, position_joueur_y):
-
         pass
 
 class Jeux():
     def __init__(self, couleur, titre):
-        """
-        creer une fenetre avec un titre, une couleur de fond et verifie si une fenetre principale
-        a deja ete creer, dans ce cas, on creer une fenetre plus petite par dessus
-        (exemple : fenetre de pause, d'acceuil...)
-        """
+        #creer une fenetre avec un titre et une couleur de fond 
         self.joueur = None
         self.labels = [] # bdd afin d'afficher tout les labels
         self.clock = pygame.time.Clock()
@@ -224,7 +218,6 @@ class Jeux():
 
     def afficher_ligne(self, x1, y1, x2, y2, epaisseur, couleur):  pygame.draw.line(self.fenetre, couleur, (x1, y1), (x2, y2), epaisseur)
         
-
     def creer_label(self, coordonnee_x, coordonnee_y, largeur, hauteur, couleur, description):
         # creer un label de coordonees x, y et de taille largeur x hauteur
         w, h = self.unite_relatif(largeur, hauteur) 
@@ -280,30 +273,40 @@ class Jeux():
         if self.joueur.direction_vue == "W": return self.joueur.image_gauche
         if self.joueur.direction_vue == "E": return self.joueur.image_droite
         
-    def verifier_deplacement(self, touche_pressee, appuie_reel):
+    def tourner_le_regard_du_joueur(self, touche_pressee, appuie_reel):
+        if touche_pressee == "z" and appuie_reel: self.joueur.direction_vue = "N"
+        if touche_pressee == "s" and appuie_reel: self.joueur.direction_vue = "S"
+        if touche_pressee == "d" and appuie_reel: self.joueur.direction_vue = "E"
+        if touche_pressee == "q" and appuie_reel: self.joueur.direction_vue = "W"
+
+    def verifier_changement_de_case(self):
+        pass
+
+    def verifier_deplacement(self, touche_pressee, appuie_reel): 
+        """
+        Verifier si le joueur peut se deplacer, mettre a jour sa position de case et changer de direction du regard
+        Normalement une fonction fait une seule action mais trop complique
+        """
+        self.tourner_le_regard_du_joueur(touche_pressee, appuie_reel)
         case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
         i, j = self.joueur.case_i, self.joueur.case_j
 
         if touche_pressee == "z":
-            if appuie_reel : self.joueur.direction_vue = "N"
             if case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
                 if case.murN :                              self.joueur.coordonee_y = case.y1+self.joueur.hauteur/2 # Si il y a un mur, on repousse le joueur
                 elif case.y1>self.joueur.coordonee_y:       self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
 
         if touche_pressee == "q":
-            if appuie_reel : self.joueur.direction_vue = "W"
             if case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
                 if case.murW :                              self.joueur.coordonee_x = case.x1+self.joueur.largeur/2
                 elif case.x1>self.joueur.coordonee_x:       self.joueur.case_i -= 1
 
         if touche_pressee == "s":
-            if appuie_reel : self.joueur.direction_vue = "S"
             if case.y2<self.joueur.coordonee_y+self.joueur.hauteur/2: 
                 if case.murS :                              self.joueur.coordonee_y = case.y2-self.joueur.hauteur/2
                 elif case.y2<self.joueur.coordonee_y :      self.joueur.case_j += 1
 
         if touche_pressee == "d":
-            if appuie_reel : self.joueur.direction_vue = "E"
             if case.x2<self.joueur.coordonee_x+self.joueur.largeur/2: 
                 if case.murE :                              self.joueur.coordonee_x = case.x2-self.joueur.largeur/2
                 elif case.x2<self.joueur.coordonee_x :      self.joueur.case_i += 1
