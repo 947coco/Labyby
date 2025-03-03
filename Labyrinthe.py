@@ -108,7 +108,10 @@ class Joueur():
         self.vitesse = vitesse
         self.veut_detruire = False
         self.image_droite = pygame.image.load(chemin_image).convert_alpha()
-        self.image_gauche = pygame.image.load("./Logo_joueur_gauche.png").convert_alpha()
+        self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
+        self.image_haut = pygame.transform.rotate(self.image_droite, 90)
+        self.image_bas = pygame.transform.flip(self.image_haut, False, True)
+        self.image_afficher = self.image_droite
         self.cooldown_transparence = cooldown_transparence
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
         self.coordonee_x, self.coordonee_y = coordonee_x, coordonee_y # coordonnes sur l'ecran
@@ -261,17 +264,20 @@ class Jeux():
 
     def creer_joueur(self, coord_case_x, coord_case_y, direction, vitesse, nb_flash, nb_leurre, cooldown_transparence):
         case = self.labyrinthe.laby[coord_case_x][coord_case_y]
-        self.joueur = Joueur(vitesse, case.x1, case.y1, direction, self.long_mur_x*0.6, self.long_mur_y*0.6, 
+        vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
+        self.joueur = Joueur(vitesse_relative, case.x1+self.long_mur_x*0.3, case.y1+self.long_mur_y*0.3, direction, self.long_mur_x*0.6, self.long_mur_y*0.6, 
                              "./Logo_joueur.png", "./Logo_joueur.png", nb_flash, nb_leurre, cooldown_transparence)
 
     def afficher_joueur(self):
         direction = self.verifier_direction()
-        image =  pygame.transform.scale(self.joueur.image_droite, (self.joueur.largeur, self.joueur.hauteur))  
+        image =  pygame.transform.scale(self.joueur.image_afficher, (self.joueur.largeur, self.joueur.hauteur))  
         self.fenetre.blit(image, (self.joueur.coordonee_x-self.joueur.largeur*0.4, self.joueur.coordonee_y-self.joueur.hauteur*0.4))
-
+#
     def verifier_direction(self): # A CORRIGER CAR FAIT CRACHER DANS le image = ...
-        if self.joueur.direction_vue == "W": return self.joueur.image_gauche
-        if self.joueur.direction_vue == "E": return self.joueur.image_droite
+        if self.joueur.direction_vue == "W": self.joueur.image_afficher = self.joueur.image_gauche
+        if self.joueur.direction_vue == "E": self.joueur.image_afficher = self.joueur.image_droite
+        if self.joueur.direction_vue == "N": self.joueur.image_afficher = self.joueur.image_haut
+        if self.joueur.direction_vue == "S": self.joueur.image_afficher = self.joueur.image_bas 
         
     def tourner_le_regard_du_joueur(self, touche_pressee):
         if touche_pressee == "z" : self.joueur.direction_vue = "N"
@@ -279,48 +285,44 @@ class Jeux():
         if touche_pressee == "d" : self.joueur.direction_vue = "E"
         if touche_pressee == "q" : self.joueur.direction_vue = "W"
 
-    def verifier_changement_de_case(self):
-        pass
+    def changement_de_case(self):
+        case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
+        if self.joueur.coordonee_x < case.x1 : self.joueur.case_i -= 1
+        if self.joueur.coordonee_x > case.x2: self.joueur.case_i += 1
+        if self.joueur.coordonee_y < case.y1 : self.joueur.case_j -= 1
+        if self.joueur.coordonee_y > case.y2: self.joueur.case_j += 1
 
     def verifier_cases_adjacentes(self):
         case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
-        case_droite, case_gauche, case_haut, case_bas = None, None, None, None
+        case_droite, case_gauche, case_haut, case_bas = False, False, False, False
         if self.joueur.case_i > 0 : case_gauche = self.labyrinthe.laby[self.joueur.case_i-1][self.joueur.case_j]
         if self.joueur.case_j > 0 : case_haut = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j-1]
         if self.joueur.case_i < self.labyrinthe.largeur-1 : case_droite = self.labyrinthe.laby[self.joueur.case_i+1][self.joueur.case_j]
         if self.joueur.case_j < self.labyrinthe.largeur-1 : case_bas = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j+1]
         return case, case_droite, case_gauche, case_haut, case_bas
-
-    def verifier_deplacement(self, touche_pressee): 
-        """
-        Verifier si le joueur peut se deplacer, mettre a jour sa position de case et changer de direction du regard
-        Normalement une fonction fait une seule action mais trop complique
-        """
-        self.tourner_le_regard_du_joueur(touche_pressee)
+    
+    def verifier_collisions(self, touche_pressee):
         case, case_droite, case_gauche, case_haut, case_bas = self.verifier_cases_adjacentes()
         joueur_x1, joueur_x2 = self.joueur.coordonee_x-self.joueur.largeur*0.5, self.joueur.coordonee_x+self.joueur.largeur*0.5
         joueur_y1, joueur_y2 = self.joueur.coordonee_y-self.joueur.hauteur*0.5, self.joueur.coordonee_y+self.joueur.hauteur*0.5
-        
-        if case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
-            if case.murN : # ici, on doit mettre les 2 or (si le joueur depasse a droite et qu'un mur est présent au N de la case droite) + (pareille pour gauche)                              
-                self.joueur.coordonee_y = case.y1+self.joueur.hauteur/2 # Si il y a un mur, on repousse le joueur
-            elif case.y1>self.joueur.coordonee_y:       self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
 
-        
-        if case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
-            if case.murW :                              self.joueur.coordonee_x = case.x1+self.joueur.largeur/2
-            elif case.x1>self.joueur.coordonee_x:       self.joueur.case_i -= 1
+        if case.y1>joueur_y1: 
+            if case.murN : self.joueur.coordonee_y = case.y1+self.joueur.hauteur/2 
 
-        
-        if case.y2<self.joueur.coordonee_y+self.joueur.hauteur/2: 
-            if case.murS :                              self.joueur.coordonee_y = case.y2-self.joueur.hauteur/2
-            elif case.y2<self.joueur.coordonee_y :      self.joueur.case_j += 1
+        if case.x1>joueur_x1: 
+            if case.murW : self.joueur.coordonee_x = case.x1+self.joueur.largeur/2
 
-        
-        if case.x2<self.joueur.coordonee_x+self.joueur.largeur/2: 
-            if case.murE :                              self.joueur.coordonee_x = case.x2-self.joueur.largeur/2
-            elif case.x2<self.joueur.coordonee_x :      self.joueur.case_i += 1
+        if case.y2<joueur_y2: 
+            if case.murS : self.joueur.coordonee_y = case.y2-self.joueur.hauteur/2
 
+        if case.x2<joueur_x2: 
+            if case.murE : self.joueur.coordonee_x = case.x2-self.joueur.largeur/2
+
+    def verifier_deplacement(self, touche_pressee): 
+        """Tourner le regard du joueur, verifier si il y a une collision, verifier si il a changer de case, le deplacer"""
+        self.tourner_le_regard_du_joueur(touche_pressee)
+        self.verifier_collisions(touche_pressee)
+        self.changement_de_case()
         self.joueur.deplacer(touche_pressee, self.long_mur_x, self.long_mur_y)
         
     def si_joueur_veut_detruire(self, a_clique = False, couleur = white):
@@ -328,19 +330,19 @@ class Jeux():
             case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
             if self.joueur.direction_vue == "S" and case.murS and self.joueur.case_j < self.labyrinthe.largeur-1:
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S") # si il a cliquer, on detruit le mur
-                else :        self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, self.epaisseur_mur*2, couleur) # sinon on affiche le mur de couleur "couleur"
+                else :        self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur) # sinon on affiche le mur de couleur "couleur"
                 
             if self.joueur.direction_vue == "N" and case.murN and self.joueur.case_j > 0 :
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N")
-                else :        self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, self.epaisseur_mur*2, couleur)
+                else :        self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur)
 
             if self.joueur.direction_vue == "E" and case.murE and self.joueur.case_i < self.labyrinthe.hauteur-1:
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E") 
-                else :        self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, self.epaisseur_mur*2, couleur)
+                else :        self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur)
 
             if self.joueur.direction_vue == "W" and case.murW and self.joueur.case_i > 0:
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W")
-                else :        self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, self.epaisseur_mur*2, couleur)
+                else :        self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur)
 
     def verifications_touches_calvier_appuiees(self):
         touche_clavier = pygame.key.get_pressed()
@@ -392,5 +394,5 @@ if __name__ == "__main__":
     jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, red) 
     jeu.afficher_labyrinthe()
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
-    jeu.creer_joueur(0,0, "S", 30, 1, 1, 1)
+    jeu.creer_joueur(0,0, "S", 1.5, 1, 1, 1)
     jeu.boucle_jeu()
