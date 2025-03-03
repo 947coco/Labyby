@@ -282,54 +282,63 @@ class Jeux():
     def verifier_changement_de_case(self):
         pass
 
+    def verifier_cases_adjacentes(self):
+        case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
+        case_droite, case_gauche, case_haut, case_bas = None, None, None, None
+        if self.joueur.case_i > 0 : case_gauche = self.labyrinthe.laby[self.joueur.case_i-1][self.joueur.case_j]
+        if self.joueur.case_j > 0 : case_haut = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j-1]
+        if self.joueur.case_i < self.labyrinthe.largeur-1 : case_droite = self.labyrinthe.laby[self.joueur.case_i+1][self.joueur.case_j]
+        if self.joueur.case_j < self.labyrinthe.largeur-1 : case_bas = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j+1]
+        return case, case_droite, case_gauche, case_haut, case_bas
+
     def verifier_deplacement(self, touche_pressee, appuie_reel): 
         """
         Verifier si le joueur peut se deplacer, mettre a jour sa position de case et changer de direction du regard
         Normalement une fonction fait une seule action mais trop complique
         """
         self.tourner_le_regard_du_joueur(touche_pressee, appuie_reel)
-        case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
-        i, j = self.joueur.case_i, self.joueur.case_j
+        case, case_droite, case_gauche, case_haut, case_bas = self.verifier_cases_adjacentes()
+        
 
-        if touche_pressee == "z":
-            if case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
-                if case.murN :                              self.joueur.coordonee_y = case.y1+self.joueur.hauteur/2 # Si il y a un mur, on repousse le joueur
-                elif case.y1>self.joueur.coordonee_y:       self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
+        if case.y1>self.joueur.coordonee_y-self.joueur.hauteur/2: 
+            if case.murN : # ici, on doit mettre les 2 or (si le joueur depasse a droite et qu'un mur est présent au N de la case droite) + (pareille pour gauche)                              
+                self.joueur.coordonee_y = case.y1+self.joueur.hauteur/2 # Si il y a un mur, on repousse le joueur
+            elif case.y1>self.joueur.coordonee_y:       self.joueur.case_j -= 1 # si le centre du modele du joueur a depasser la ligne, on le change de case
 
-        if touche_pressee == "q":
-            if case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
-                if case.murW :                              self.joueur.coordonee_x = case.x1+self.joueur.largeur/2
-                elif case.x1>self.joueur.coordonee_x:       self.joueur.case_i -= 1
+        
+        if case.x1>self.joueur.coordonee_x-self.joueur.largeur/2: 
+            if case.murW :                              self.joueur.coordonee_x = case.x1+self.joueur.largeur/2
+            elif case.x1>self.joueur.coordonee_x:       self.joueur.case_i -= 1
 
-        if touche_pressee == "s":
-            if case.y2<self.joueur.coordonee_y+self.joueur.hauteur/2: 
-                if case.murS :                              self.joueur.coordonee_y = case.y2-self.joueur.hauteur/2
-                elif case.y2<self.joueur.coordonee_y :      self.joueur.case_j += 1
+        
+        if case.y2<self.joueur.coordonee_y+self.joueur.hauteur/2: 
+            if case.murS :                              self.joueur.coordonee_y = case.y2-self.joueur.hauteur/2
+            elif case.y2<self.joueur.coordonee_y :      self.joueur.case_j += 1
 
-        if touche_pressee == "d":
-            if case.x2<self.joueur.coordonee_x+self.joueur.largeur/2: 
-                if case.murE :                              self.joueur.coordonee_x = case.x2-self.joueur.largeur/2
-                elif case.x2<self.joueur.coordonee_x :      self.joueur.case_i += 1
+        
+        if case.x2<self.joueur.coordonee_x+self.joueur.largeur/2: 
+            if case.murE :                              self.joueur.coordonee_x = case.x2-self.joueur.largeur/2
+            elif case.x2<self.joueur.coordonee_x :      self.joueur.case_i += 1
 
         self.joueur.deplacer(touche_pressee, self.long_mur_x, self.long_mur_y)
         
-    def si_joueur_veut_detruire(self, a_clique=False):
+    def si_joueur_veut_detruire(self, a_clique = False, couleur = white):
         if self.joueur.veut_detruire : 
             case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
             if self.joueur.direction_vue == "S" and case.murS and self.joueur.case_j < self.labyrinthe.largeur-1:
-                self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, self.epaisseur_mur*2, purple)
+                self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, self.epaisseur_mur*2, couleur)
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S")
                 
             if self.joueur.direction_vue == "N" and case.murN and self.joueur.case_j != 0 :
-                self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, self.epaisseur_mur*2, purple)
+                self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, self.epaisseur_mur*2, couleur)
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N")
 
             if self.joueur.direction_vue == "E" and case.murE and self.joueur.case_i < self.labyrinthe.hauteur-1:
-                self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, self.epaisseur_mur*2, purple)
+                self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, self.epaisseur_mur*2, couleur)
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E")
 
             if self.joueur.direction_vue == "W" and case.murW and self.joueur.case_i != 0:
-                self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, self.epaisseur_mur*2, purple)
+                self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, self.epaisseur_mur*2, couleur)
                 if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W")
 
     def verifications_touches_calvier_appuiees(self):
@@ -366,13 +375,6 @@ class Jeux():
         while True :
             self.verifications_touches_calvier_appuiees()
             self.verifications_autres_touches()
-            
-            # simuler des appuie de touches constament afin de bien repousser le joueur au contact du "coin bugge"
-            self.verifier_deplacement("z", False)
-            self.verifier_deplacement("q", False)
-            self.verifier_deplacement("s", False)
-            self.verifier_deplacement("d", False)
-
             self.fenetre.fill(black) # Tout effacer
             # Tout charger
             self.afficher_labyrinthe()
