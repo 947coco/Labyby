@@ -444,5 +444,5 @@ if __name__ == "__main__":
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
     jeu.creer_joueur(9, 0, "S", 1.3, 0, 0)
     jeu.creer_pieces(4,"piece.png", jeu.labyrinthe, jeu.joueur, jeu.long_mur)
-    jeu.creer_ennemie(0.1, "./yt.png", 15, 10, "S")
+    jeu.creer_ennemie(0.1, "./yt.png", 15, 10)
     jeu.boucle_jeu()
