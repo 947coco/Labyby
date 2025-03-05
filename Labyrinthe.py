@@ -120,6 +120,7 @@ class Joueur():
         self.veut_detruire = False
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
         self.direction = direction # direction du regard du joueur
+        self.pieces_possedee = 0
         self.mettre_a_jour_hitbox()
 
     def mettre_a_jour_hitbox(self):
@@ -199,6 +200,13 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
     
     def lancement(self, direction_du_lance, position_joueur_x, position_joueur_y):
         pass
+
+class Piece():
+    def __init__(self, chemin_image, largeur_image, hauteur_image, x, y):
+        self.recoltee = False
+        chargement_image = pygame.image.load(chemin_image).convert_alpha()
+        self.image = pygame.transform.scale(chargement_image, (largeur_image, hauteur_image))  
+        self.x1, self.y1, self.x2, self.y2 = x, y, x+largeur_image, y+hauteur_image
 
 class Jeux():
     def __init__(self, couleur, titre):
@@ -306,11 +314,7 @@ class Jeux():
         case = self.labyrinthe.laby[i][j]
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
         self.ennemie = Ennemie(vitesse, chemin_image, case.x1+self.long_mur*0.3, case.y1+self.long_mur*0.3, i, j, self.long_mur*0.6, self.long_mur*0.6)
-    
-    def deplacement_ennemie(self):
-        chemin = self.ennemie.chemin_depart_a_arrivee(self.labyrinthe.graphe, (self.ennemie.case_i, self.ennemie.case_j), (self.joueur.case_i, self.joueur.case_j))
-        for i, j in chemin:
-            pass
+
     
     def afficher_ennemie(self):
         image =  pygame.transform.scale(self.ennemie.chemin_image, (self.ennemie.largeur, self.ennemie.hauteur)) 
