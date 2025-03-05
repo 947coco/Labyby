@@ -205,6 +205,7 @@ class Jeux():
         #creer une fenetre avec un titre et une couleur de fond 
         self.joueur = None
         self.labels = [] # bdd afin d'afficher tout les labels
+        self.pieces = [] # bdd afin d'afficher toutes les pieces
         self.clock = pygame.time.Clock()
         pygame.init()
         self.fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
@@ -214,6 +215,20 @@ class Jeux():
         #pygame.display.set_icon(self.icon)
         
         
+    def creer_pieces(self, nb_pieces, chemin_image, labyrinthe, joueur, longeur_mur):
+        for piece in range(nb_pieces):
+            i, j = joueur.case_i, joueur.case_j
+            while i == joueur.case_i and j == joueur.case_j:
+                i, j = random.randint(0, labyrinthe.largeur-1), random.randint(0, labyrinthe.hauteur-1)
+            case = labyrinthe.laby[j][i]
+            piece = Piece(chemin_image, longeur_mur*0.5, longeur_mur*0.5, case.x1+longeur_mur*0.2, case.y1+longeur_mur*0.2)
+            self.pieces.append(piece)
+
+    
+    def afficher_pieces(self):
+        if self.pieces != []: 
+            [self.fenetre.blit(piece.image, (piece.x1, piece.y1)) for piece in self.pieces]
+
     # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci    
     def afficher_score(self):
         pass # A FAIRE
@@ -347,9 +362,9 @@ class Jeux():
     def verifier_deplacement(self, touche_pressee): 
         """Tourner le regard du joueur, verifier si il y a une collision (mur ou ennemie), verifier si il a changer de case, le deplacer"""
         self.collision_ennemie()
-        self.tourner_le_regard_du_joueur(touche_pressee)
+        self.collision_piece()        
         self.collision_mur()
-        
+        self.tourner_le_regard_du_joueur(touche_pressee)
         self.changement_de_case()
         self.joueur.deplacer(touche_pressee, self.long_mur, self.long_mur)
         
@@ -424,5 +439,6 @@ if __name__ == "__main__":
     jeu.afficher_labyrinthe()
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
     jeu.creer_joueur(9, 0, "S", 1.3, 0, 0)
-    jeu.creer_ennemie(0.1, "./yt.png", 0, 10)
+    jeu.creer_pieces(4,"piece.png", jeu.labyrinthe, jeu.joueur, jeu.long_mur)
+    jeu.creer_ennemie(0.1, "./yt.png", 15, 10, "S")
     jeu.boucle_jeu()
