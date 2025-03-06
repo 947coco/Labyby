@@ -34,8 +34,11 @@ class Pile:
     def sommet(self):       return self.contenu[-1] if not self.est_vide() else print("Pile vide !")
 
 class Case: 
-    def __init__(self):  self.murN, self.murS, self.murE, self.murW, self.vue = True, True, True, True, False
-    def assigner_coordonnees(self, x1, y1, x2, y2): self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
+    def __init__(self):  
+        self.murN, self.murS, self.murE, self.murW, self.vue = True, True, True, True, False
+    def assigner_coordonnees(self, x1, y1, x2, y2): 
+        self.x1, self.y1, self.x2, self.y2 = x1, y1, x2, y2
+        self.milieu_x, self.milieu_y = x1+(x2-x1)/2, y1+(y2-y1)/2
 
 class Labyrinthe:
     def __init__(self, largeur, hauteur):
@@ -90,7 +93,7 @@ class Labyrinthe:
         self.graphe = self.creer_un_graphe()    # enregistrer un dictionnaire d'adjacence avec la methode juste en-dessous
 
     def creer_un_graphe(self):
-        dico_adjacence = {(i, j): [] for i in range(self.largeur) for j in range(self.hauteur)} # initialiser toutes les cases (i, j) sans voisins []
+        dico_adjacence = {(x, y): [] for x in range(self.largeur) for y in range(self.hauteur)} # initialiser toutes les cases (i, j) sans voisins []
         for i in range(self.largeur):           # ajouter les cases voisines grace a la presence ou non des murs
             for j in range(self.hauteur):
                 case = self.laby[j][i]
@@ -121,6 +124,7 @@ class Joueur():
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
         self.direction = direction # direction du regard du joueur
         self.pieces_possedee = 0
+        self.pieces_a_recup = 9999
         self.mettre_a_jour_hitbox()
 
     def mettre_a_jour_hitbox(self):
@@ -146,26 +150,46 @@ class Joueur():
 
 
 class Ennemie():
-    def __init__(self, vitesse, chemin_image, x, y, case_i, case_j, largeur, hauteur):
+    def __init__(self, vitesse, chemin_image, x, y, case_i, case_j, largeur, hauteur, labyrinthe, long_mur):
         self.vitesse = vitesse
         self.chemin_image = pygame.image.load(chemin_image).convert_alpha()
         self.x1, self.y1, self.x2, self.y2 = x, y, x+largeur, y+hauteur
+        case = labyrinthe.laby[case_i][case_j]
+        self.coordonee_x, self.coordonee_y = case.x1+long_mur*0.5, case.y1+long_mur*0.5
         self.case_i, self.case_j = case_i, case_j
         self.largeur, self.hauteur = largeur, hauteur
+        self.suite_i, self.suite_j = (0, 0)
 
-    def deplacer(self, touche_pressee, longeur_saut_x, longeur_saut_y):
-        if touche_pressee == "z" : self.y1 -= self.vitesse/longeur_saut_y 
-        if touche_pressee == "q" : self.x1 -= self.vitesse/longeur_saut_x
-        if touche_pressee == "d" : self.x1 += self.vitesse/longeur_saut_x
-        if touche_pressee == "s" : self.y1 += self.vitesse/longeur_saut_y
+    def deplacer(self, longeur_saut, labyrinthe, joueur):
+        case_prochaine = labyrinthe.laby[self.suite_i][self.suite_j]
+        if case_prochaine.x1 < self.coordonee_x < case_prochaine.x2 and case_prochaine.y1 < self.coordonee_y < case_prochaine.y2 :
+                self.suite_i, self.suite_j = self.prochaine_case_a_prendre(labyrinthe.graphe, joueur.case_i, joueur.case_j)
+        self.coordonee_x += (case_prochaine.milieu_x-self.coordonee_x)*(self.vitesse/longeur_saut) 
+        self.coordonee_y += (case_prochaine.milieu_y-self.coordonee_y)*(self.vitesse/longeur_saut) 
+        self.mettre_a_jour_hitbox()
+
+    def mettre_a_jour_hitbox(self):
+        self.x1, self.y1 = self.coordonee_x-self.largeur/2, self.coordonee_y-self.hauteur/2 # bords gauche et haut de la hitox
+        self.x2, self.y2 = self.coordonee_x+self.largeur/2, self.coordonee_y+self.hauteur/2 # bords droite et bas de la hitbox
 
 
-    def distance_entre_2_cases(self, depart, arrivee):
+    def distance(self, depart, arrivee):
         # Sert a savoir si la case depart se rapproche de la case arriver (voir methode en-dessous)
         i1, j1 = depart
         i2, j2 = arrivee
         return (i2-i1) + (j2-j1)
     
+    def prochaine_case_a_prendre(self, graphe, joueur_i, joueur_j):
+        voisins = graphe[(self.case_i, self.case_j)]
+        distance_min = 99999
+        meilleur_case = voisins[0]
+        for index, case in enumerate(voisins):
+            distance_case = self.distance((self.case_i, self.case_j), (joueur_i, joueur_j))
+            if distance_case < distance_min and len(graphe[case]) > 1 : 
+                distance_min = distance_case
+                meilleur_case = case
+        return meilleur_case
+        
     # Basee sur la seance C39 bfs_iteratif mais tres modifiee
     def chemin_depart_a_arrivee(self, graphe, depart, arrivee):
         # graphe = dictionnaire d'adjacence, depart et arrivee = tuples de coordonnees de cases
@@ -224,6 +248,7 @@ class Jeux():
         
         
     def creer_pieces(self, nb_pieces, chemin_image, labyrinthe, joueur, longeur_mur):
+        joueur.pieces_a_recup = nb_pieces
         for piece in range(nb_pieces):
             i, j = joueur.case_i, joueur.case_j
             while i == joueur.case_i and j == joueur.case_j:
@@ -260,8 +285,8 @@ class Jeux():
         
     def creer_label(self, coordonnee_x, coordonnee_y, largeur, hauteur, couleur, description):
         # creer un label de coordonees x, y et de taille largeur x hauteur
-        w, h = self.unite_relatif(largeur, hauteur) 
-        x, y = self.unite_relatif(coordonnee_x, coordonnee_y) 
+        w, h = self.unite_relatif(largeur, hauteur)
+        x, y = self.unite_relatif(coordonnee_x, coordonnee_y)
         label = pygame.surface.Surface((w, h))
         label.fill(couleur)
         self.labels.append([label, x, y, description, w, h])
@@ -313,7 +338,7 @@ class Jeux():
     def creer_ennemie(self, vitesse, chemin_image, i, j):
         case = self.labyrinthe.laby[i][j]
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
-        self.ennemie = Ennemie(vitesse, chemin_image, case.x1+self.long_mur*0.3, case.y1+self.long_mur*0.3, i, j, self.long_mur*0.6, self.long_mur*0.6)
+        self.ennemie = Ennemie(vitesse, chemin_image, case.x1+self.long_mur*0.3, case.y1+self.long_mur*0.3, i, j, self.long_mur*0.6, self.long_mur*0.6, self.labyrinthe, self.long_mur)
 
     
     def afficher_ennemie(self):
@@ -432,6 +457,7 @@ class Jeux():
         while True :
             self.verifications_touches_calvier_appuiees()
             self.verifications_autres_touches()
+            self.ennemie.deplacer(self.long_mur*0.1, self.labyrinthe, self.joueur)
             self.fenetre.fill(black) # Tout effacer
             # Tout charger
             self.afficher_labyrinthe()
