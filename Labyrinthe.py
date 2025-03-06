@@ -161,11 +161,12 @@ class Ennemie():
         self.suite_i, self.suite_j = (0, 0)
 
     def deplacer(self, longeur_saut, labyrinthe, joueur):
+        self.suite_i, self.suite_j = self.prochaine_case_a_prendre(labyrinthe.graphe, joueur.case_i, joueur.case_j)
         case_prochaine = labyrinthe.laby[self.suite_i][self.suite_j]
         if case_prochaine.x1 < self.coordonee_x < case_prochaine.x2 and case_prochaine.y1 < self.coordonee_y < case_prochaine.y2 :
                 self.suite_i, self.suite_j = self.prochaine_case_a_prendre(labyrinthe.graphe, joueur.case_i, joueur.case_j)
-        self.coordonee_x += (case_prochaine.milieu_x-self.coordonee_x)*(self.vitesse/longeur_saut) 
-        self.coordonee_y += (case_prochaine.milieu_y-self.coordonee_y)*(self.vitesse/longeur_saut) 
+        self.coordonee_x += (case_prochaine.milieu_x-self.coordonee_x)#*(self.vitesse/longeur_saut) 
+        self.coordonee_y += (case_prochaine.milieu_y-self.coordonee_y)#*(self.vitesse/longeur_saut) 
         self.mettre_a_jour_hitbox()
 
     def mettre_a_jour_hitbox(self):
@@ -341,9 +342,9 @@ class Jeux():
         self.ennemie = Ennemie(vitesse, chemin_image, case.x1+self.long_mur*0.3, case.y1+self.long_mur*0.3, i, j, self.long_mur*0.6, self.long_mur*0.6, self.labyrinthe, self.long_mur)
 
     
-    def afficher_ennemie(self):
-        image =  pygame.transform.scale(self.ennemie.chemin_image, (self.ennemie.largeur, self.ennemie.hauteur)) 
-        self.fenetre.blit(image, (self.ennemie.x1-self.ennemie.largeur*0.4, self.ennemie.y1-self.ennemie.hauteur*0.4))
+    def afficher_ennemie(self,ennemie):
+        image =  pygame.transform.scale(ennemie.chemin_image, (ennemie.largeur, ennemie.hauteur)) 
+        self.fenetre.blit(image, (ennemie.x1, ennemie.y1))
 
     def tourner_modele(self, personnage): 
         if personnage.direction == "W": personnage.image_afficher = personnage.image_gauche
@@ -464,7 +465,7 @@ class Jeux():
             self.si_joueur_veut_detruire()
             self.afficher_pieces()
             self.afficher_joueur()
-            self.afficher_ennemie()
+            self.afficher_ennemie(self.ennemie)
             self.afficher_label()
             pygame.display.flip() # tout réafficher
 
