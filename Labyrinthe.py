@@ -106,7 +106,7 @@ class Labyrinthe:
 
 
 class Joueur():
-    def __init__(self, vitesse, coordonee_x, coordonee_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_flash, nb_leurre):
+    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_flash, nb_leurre):
         # differentes images pour diriger le modele du joueur en fonction de la direction du regard
         self.image_droite = pygame.image.load(chemin_image).convert_alpha()
         self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
@@ -114,7 +114,7 @@ class Joueur():
         self.image_bas = pygame.transform.flip(self.image_haut, False, True)
         self.image_afficher = self.image_droite
         # coordonnes relative du joueur
-        self.coordonee_x, self.coordonee_y = coordonee_x, coordonee_y # coordonnes du milieu de la hitbox
+        self.coord_x, self.coord_y = coord_x, coord_y # coordonnes du milieu de la hitbox
         self.case_i, self.case_j = case_i, case_j# Sur quelle case se trouve le joueur
         self.largeur, self.hauteur = largeur, hauteur # dimensions de l'image representant le joueur
         self.x1, self.y1, self.x2, self.y2 = None, None, None, None
@@ -128,15 +128,15 @@ class Joueur():
         self.mettre_a_jour_hitbox()
 
     def mettre_a_jour_hitbox(self):
-        self.x1, self.y1 = self.coordonee_x-self.largeur/2, self.coordonee_y-self.hauteur/2 # bords gauche et haut de la hitox
-        self.x2, self.y2 = self.coordonee_x+self.largeur/2, self.coordonee_y+self.hauteur/2 # bords droite et bas de la hitbox
+        self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
+        self.x2, self.y2 = self.coord_x+self.largeur/2, self.coord_y+self.hauteur/2 # bords droite et bas de la hitbox
 
     def deplacer(self, touche_pressee, longeur_saut_x, longeur_saut_y):
         # deplacer le joueur en fonction de sa vitesse et de la touche appuiee
-        if touche_pressee == "z" : self.coordonee_y -= self.vitesse/longeur_saut_y 
-        if touche_pressee == "q" : self.coordonee_x -= self.vitesse/longeur_saut_x
-        if touche_pressee == "d" : self.coordonee_x += self.vitesse/longeur_saut_x
-        if touche_pressee == "s" : self.coordonee_y += self.vitesse/longeur_saut_y
+        if touche_pressee == "z" : self.coord_y -= self.vitesse/longeur_saut_y 
+        if touche_pressee == "q" : self.coord_x -= self.vitesse/longeur_saut_x
+        if touche_pressee == "d" : self.coord_x += self.vitesse/longeur_saut_x
+        if touche_pressee == "s" : self.coord_y += self.vitesse/longeur_saut_y
         self.mettre_a_jour_hitbox()
         
     def jete_flash(self):
@@ -155,7 +155,7 @@ class Ennemie():
         self.chemin_image = pygame.image.load(chemin_image).convert_alpha()
         self.x1, self.y1, self.x2, self.y2 = x, y, x+largeur, y+hauteur
         case = labyrinthe.laby[case_i][case_j]
-        self.coordonee_x, self.coordonee_y = case.x1+long_mur*0.5, case.y1+long_mur*0.5
+        self.coord_x, self.coord_y = case.x1+long_mur*0.5, case.y1+long_mur*0.5
         self.case_i, self.case_j = case_i, case_j
         self.largeur, self.hauteur = largeur, hauteur
         self.suite_i, self.suite_j = (0, 0)
@@ -163,16 +163,22 @@ class Ennemie():
     def deplacer(self, longeur_saut, labyrinthe, joueur):
         self.suite_i, self.suite_j = self.prochaine_case_a_prendre(labyrinthe.graphe, joueur.case_i, joueur.case_j)
         case_prochaine = labyrinthe.laby[self.suite_i][self.suite_j]
-        if case_prochaine.x1 < self.coordonee_x < case_prochaine.x2 and case_prochaine.y1 < self.coordonee_y < case_prochaine.y2 :
+        if case_prochaine.x1 < self.coord_x < case_prochaine.x2 and case_prochaine.y1 < self.coord_y < case_prochaine.y2 :
                 self.suite_i, self.suite_j = self.prochaine_case_a_prendre(labyrinthe.graphe, joueur.case_i, joueur.case_j)
-        self.coordonee_x += (case_prochaine.milieu_x-self.coordonee_x)#*(self.vitesse/longeur_saut) 
-        self.coordonee_y += (case_prochaine.milieu_y-self.coordonee_y)#*(self.vitesse/longeur_saut) 
+        self.coord_x += (case_prochaine.milieu_x-self.coord_x)# *(self.vitesse/longeur_saut) 
+        self.coord_y += (case_prochaine.milieu_y-self.coord_y)#*(self.vitesse/longeur_saut) 
         self.mettre_a_jour_hitbox()
 
     def mettre_a_jour_hitbox(self):
-        self.x1, self.y1 = self.coordonee_x-self.largeur/2, self.coordonee_y-self.hauteur/2 # bords gauche et haut de la hitox
-        self.x2, self.y2 = self.coordonee_x+self.largeur/2, self.coordonee_y+self.hauteur/2 # bords droite et bas de la hitbox
+        self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
+        self.x2, self.y2 = self.coord_x+self.largeur/2, self.coord_y+self.hauteur/2 # bords droite et bas de la hitbox
 
+
+    def mettre_a_jour_case(self, case):
+        if self.coord_x < case.x1 : self.case_i -= 1
+        if self.coord_x > case.x2: self.case_i += 1
+        if self.coord_y < case.y1 : self.case_j -= 1
+        if self.coord_y > case.y2: self.case_j += 1
 
     def distance(self, depart, arrivee):
         # Sert a savoir si la case depart se rapproche de la case arriver (voir methode en-dessous)
@@ -218,17 +224,64 @@ class Ennemie():
 
 
 class Projectile(): # Flash, leurre... (tout ce qui est jetable)
-    def __init__(self, vitesse, chemin_image, quantitee):
+    def __init__(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, joueur, labyrinthe, distance_nb_case):
         self.vitesse = vitesse
         self.chemin_image = chemin_image
-        self.quantitee = quantitee
-    
-    def lancement(self, direction_du_lance, position_joueur_x, position_joueur_y):
-        pass
+        self.fichier_son = fichier_son
+        self.type = type 
+        self.largeur, self.hauteur = largeur, hauteur
+        self.case_i, self.case_j = joueur.case_i, joueur.case_j
+        self.direction = joueur.direction_vue
+        self.coord_x, self.coord_y= joueur.coord_x, joueur.coord_y
+        self.x_init, self.y_init = joueur.coord_x, joueur.coord_y
+        if self.direction == "N": self.case_arret = labyrinthe.laby[joueur.case_j-distance_nb_case][joueur.case_i]
+        if self.direction == "S": self.case_arret = labyrinthe.laby[joueur.case_j+distance_nb_case][joueur.case_i]
+        if self.direction == "E": self.case_arret = labyrinthe.laby[joueur.case_j][joueur.case_i+distance_nb_case]
+        if self.direction == "W": self.case_arret = labyrinthe.laby[joueur.case_j][joueur.case_i-distance_nb_case]
+        self.mettre_a_jour_hitbox()
+        self.doit_etre_supprimer = False
 
+    def mettre_a_jour_hitbox(self):
+        self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
+        self.x2, self.y2 = self.coord_x+self.largeur/2, self.coord_y+self.hauteur/2 # bords droite et bas de la hitbox
+
+    def mettre_a_jour_case(self, case):
+        if self.coord_x < case.x1 : self.case_i -= 1
+        if self.coord_x > case.x2: self.case_i += 1
+        if self.coord_y < case.y1 : self.case_j -= 1
+        if self.coord_y > case.y2: self.case_j += 1
+
+    def lancer(self, labyrinthe):
+        case = labyrinthe.laby[self.case_i][self.case_j]
+        collision_mur = {"N": self.coord_y<case.y1, "S": self.coord_y>case.y2, "E": self.coord_x>case.x2, "W": self.coord_x<case.x1}
+        self.mettre_a_jour_hitbox()
+        self.mettre_a_jour_case(case)
+        if (self.case_arret.x1 < self.coord_x < self.case_arret.x2 and self.case_arret.y1 < self.coord_y < self.case_arret.y2) or collision_mur[self.direction]:
+            self.explose() # si le projectile arrive a la case maximale ou se heurte a un mur, il explose
+            self.debut = time.time() # pour calculer le temps avant la suppression du projectile a l'ecran
+        else : 
+            self.avance(labyrinthe.long_mur) 
+
+    def avance(self, longueur_mur):
+        if self.direction == "N": self.coord_y -= self.vitesse/longueur_mur
+        if self.direction == "S": self.coord_y += self.vitesse/longueur_mur
+        if self.direction == "E": self.coord_x += self.vitesse/longueur_mur
+        if self.direction == "W": self.coord_x -= self.vitesse/longueur_mur
+
+    def explose(self):
+        self.largeur *= 1.1
+        self.hauteur *= 1.1
+        if time.time() - self.debut > 2:  # si l'explosion a duree plus de 2 secondes
+            pygame.mixer.Sound(self.fichier_son).play()
+            self.produit_effet()
+            self.doit_etre_supprimer = True
+
+
+    def produit_effet(self):
+        # produire l'effet voulu selon le type de projectile (grenade, flash, leurre...)
+        pass
 class Piece():
     def __init__(self, chemin_image, largeur_image, hauteur_image, x, y):
-        self.recoltee = False
         chargement_image = pygame.image.load(chemin_image).convert_alpha()
         self.image = pygame.transform.scale(chargement_image, (largeur_image, hauteur_image))  
         self.x1, self.y1, self.x2, self.y2 = x, y, x+largeur_image, y+hauteur_image
@@ -241,6 +294,7 @@ class Jeux():
         self.pieces = [] # bdd afin d'afficher toutes les pieces
         self.clock = pygame.time.Clock()
         pygame.init()
+        pygame.mixer.init()
         self.fenetre = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
         self.fenetre.fill(couleur) 
         pygame.display.set_caption(titre)
@@ -360,26 +414,17 @@ class Jeux():
 
     def changement_de_case(self, personnage):
         case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
-        if personnage.coordonee_x < case.x1 : personnage.case_i -= 1
-        if personnage.coordonee_x > case.x2: personnage.case_i += 1
-        if personnage.coordonee_y < case.y1 : personnage.case_j -= 1
-        if personnage.coordonee_y > case.y2: personnage.case_j += 1
+        if personnage.coord_x < case.x1 : personnage.case_i -= 1
+        if personnage.coord_x > case.x2: personnage.case_i += 1
+        if personnage.coord_y < case.y1 : personnage.case_j -= 1
+        if personnage.coord_y > case.y2: personnage.case_j += 1
 
-    def verifier_cases_adjacentes(self):
-        case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
-        case_droite, case_gauche, case_haut, case_bas = False, False, False, False
-        if self.joueur.case_i > 0 : case_gauche = self.labyrinthe.laby[self.joueur.case_i-1][self.joueur.case_j]
-        if self.joueur.case_j > 0 : case_haut = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j-1]
-        if self.joueur.case_i < self.labyrinthe.largeur-1 : case_droite = self.labyrinthe.laby[self.joueur.case_i+1][self.joueur.case_j]
-        if self.joueur.case_j < self.labyrinthe.largeur-1 : case_bas = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j+1]
-        return case, case_droite, case_gauche, case_haut, case_bas
-    
     def collision_mur(self, personnage):
-        case, case_droite, case_gauche, case_haut, case_bas = self.verifier_cases_adjacentes()
-        if case.y1>personnage.y1 and case.murN : personnage.coordonee_y = case.y1+personnage.hauteur/2
-        if case.x1>personnage.x1 and case.murW : personnage.coordonee_x = case.x1+personnage.largeur/2
-        if case.y2<personnage.y2 and case.murS : personnage.coordonee_y = case.y2-personnage.hauteur/2
-        if case.x2<personnage.x2 and case.murE : personnage.coordonee_x = case.x2-personnage.largeur/2
+        case = case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
+        if case.y1>personnage.y1 and case.murN : personnage.coord_y = case.y1+personnage.hauteur/2
+        if case.x1>personnage.x1 and case.murW : personnage.coord_x = case.x1+personnage.largeur/2
+        if case.y2<personnage.y2 and case.murS : personnage.coord_y = case.y2-personnage.hauteur/2
+        if case.x2<personnage.x2 and case.murE : personnage.coord_x = case.x2-personnage.largeur/2
 
     def collision_ennemie(self):
         if self.ennemie.y2 > self.joueur.y1 or self.ennemie.y1 < self.joueur.y2: # si il y 
@@ -388,7 +433,7 @@ class Jeux():
 
     def collision_piece(self):
         for piece in self.pieces:
-            if piece.x1 < self.joueur.coordonee_x < piece.x2 and piece.y1 < self.joueur.coordonee_y < piece.y2:
+            if piece.x1 < self.joueur.coord_x < piece.x2 and piece.y1 < self.joueur.coord_y < piece.y2:
                 piece.recoltee = True
                 self.joueur.pieces_possedee += 1
                 self.pieces.remove(piece)
@@ -449,10 +494,16 @@ class Jeux():
                 if evenement.type == pygame.KEYDOWN:    # Verifier si une touche est enfoncee 
                     if evenement.key == pygame.K_LSHIFT: self.joueur.vitesse *= 1.4 # courir
                     if evenement.key == pygame.K_SPACE:  self.joueur.veut_detruire = not self.joueur.veut_detruire
+                    if evenement.key == pygame.K_a: pass # maintient de la grenade
+                    if evenement.key == pygame.K_e: pass # maintient de la flash
+                    if evenement.key == pygame.K_f: pass # maintient du leurre
 
 
                 if evenement.type == pygame.KEYUP:   # Verifier si une touche est relachee
                     if evenement.key == pygame.K_LSHIFT: self.joueur.vitesse /= 1.4 # ne plus courir
+                    if evenement.key == pygame.K_a: pass # relachement de la grenade
+                    if evenement.key == pygame.K_e: pass # relachement de la flash
+                    if evenement.key == pygame.K_f: pass # relachement du leurre
                         
     def boucle_jeu(self):
         while True :
