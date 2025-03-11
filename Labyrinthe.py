@@ -83,7 +83,7 @@ class Labyrinthe:
         while not pile.est_vide():
             i, j = pile.sommet()
             directions = self.directions_possibles(i, j)
-            pile.depiler() if len(directions) == 0 else self.abattre_mur(i, j, random.choice(directions), pile)
+            pile.depiler() if len(directions) == 0 else self.abattre_mur(i, j, random.choice(directions), pile) 
         # destruction de x% de murs pour un labyrinthe plus ouvert
         for k in range(int(4*self.hauteur*self.largeur * 0.12)): 
             x, y = random.randint(2, self.hauteur-2), random.randint(2, self.largeur-2)
@@ -115,54 +115,63 @@ class Joueur():
         self.image = self.image_droite
         # coordonnes relative 
         self.coord_x, self.coord_y = coord_x, coord_y # coordonnes du milieu de la hitbox
-        self.case_i, self.case_j = case_i, case_j# Sur quelle case se trouve le joueur
-        self.largeur, self.hauteur = largeur, hauteur # dimensions de l'image representant le joueur
-        self.x1, self.y1, self.x2, self.y2 = None, None, None, None
+        self.case_i, self.case_j = case_i, case_j # Sur quelle case se trouve le personnage
+        self.largeur, self.hauteur = largeur, hauteur # dimensions de l'image representant le personnage
+        #self.x1, self.y1, self.x2, self.y2 = None, None, None, None
         self.mettre_a_jour_hitbox()
         # Autres
         self.vitesse = vitesse
         self.direction = direction # direction du regard 
         self.est_joueur = est_joueur
-        if est_joueur:
-            self.pieces_possedee = 0
-            self.pieces_a_recup = pieces_a_recup
-            self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
-            self.veut_detruire = False
+        self.pieces_possedee = 0
+        self.pieces_a_recup = pieces_a_recup
+        self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
+        self.veut_detruire = False
             
 
     def mettre_a_jour_hitbox(self):
         self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
         self.x2, self.y2 = self.coord_x+self.largeur/2, self.coord_y+self.hauteur/2 # bords droite et bas de la hitbox
 
-    def deplacer(self, touche_pressee, longeur_saut_x, longeur_saut_y):
+    def deplacer(self, touche_pressee, longeur_saut):
         # deplacer le joueur en fonction de sa vitesse et de la touche appuiee
-        if touche_pressee == "z" : self.coord_y -= self.vitesse/longeur_saut_y 
-        if touche_pressee == "q" : self.coord_x -= self.vitesse/longeur_saut_x
-        if touche_pressee == "d" : self.coord_x += self.vitesse/longeur_saut_x
-        if touche_pressee == "s" : self.coord_y += self.vitesse/longeur_saut_y
+        if touche_pressee == "z" : self.coord_y -= self.vitesse/longeur_saut 
+        if touche_pressee == "q" : self.coord_x -= self.vitesse/longeur_saut
+        if touche_pressee == "d" : self.coord_x += self.vitesse/longeur_saut
+        if touche_pressee == "s" : self.coord_y += self.vitesse/longeur_saut
         self.mettre_a_jour_hitbox()
         
-    def chemin(self, graphe, depart, arrivee):
-        chemin = [depart]
-        while True:
-            voisin_choisi_aleatoirement = random.choice(graphe[chemin[-1]])
-            chemin.append(voisin_choisi_aleatoirement)
-            if arrivee in graphe[chemin[-1]]: chemin.pop(0); chemin.append(arrivee); return chemin 
-            # si l'arrivee est a 1 case, enlever depart, ajouter arrivee, retourner chemin
+    def determiner_prochaine_case(self, joueur, labyrinthe):
+        return self.C39_bfs_iteratif2(labyrinthe.graphe, (self.case_i, self.case_j), (joueur.case_i, joueur.case_j))[0]
+         # pas chemin[0] car c le debut = case deja dessus
 
-    def trouver_meilleur_chemin(self, graphe, depart, arrivee, nb_try):
-        chemins = [self.chemin(graphe, depart, arrivee) for x in range(nb_try)]
-        self.meilleur_chemin = min(chemins, key=len) # prendre le chemin le plus court parmis les differentes trouvailles
     
-    def deplacer_automatiquement(self, labyrinthe):
-        i, j = self.meilleur_chemin[0]
-        prochaine_case = labyrinthe.laby[j][i]
-        if prochaine_case.x1 < self.coord_x < prochaine_case.x2 and prochaine_case.y1 < self.coord_y < prochaine_case.y2 :
-            self.meilleur_chemin.pop(0)
-        else : 
-            self.coord_x += (prochaine_case.milieu_x-self.coord_x)*(10/self.vitesse) 
-            self.coord_y += (prochaine_case.milieu_y-self.coord_y)*(10/self.vitesse) 
-            self.mettre_a_jour_hitbox()
+    def deplacer_ennemie(self, joueur, labyrinthe, long_mur):
+        i, j = self.determiner_prochaine_case(joueur, labyrinthe)
+        if i > self.case_i: self.deplacer("q", long_mur)
+        if i < self.case_i: self.deplacer("d", long_mur)
+        if j > self.case_j: self.deplacer("z", long_mur)
+        if j < self.case_j: self.deplacer("s", long_mur)
+        self.mettre_a_jour_hitbox()
+
+    def C39_bfs_iteratif2(self, graphe, debut, fin):
+        parents = {debut: None}
+        f = File()
+        f.enfiler(debut)
+        while not f.est_vide():
+            sommet = f.defiler()
+
+            if sommet == fin: # reconstruire le chemin
+                chemin = []
+                while sommet != None:
+                    chemin.append(sommet)
+                    sommet = parents[sommet]
+                return chemin[::-1] # le re-inverser
+
+            for voisin in graphe[sommet]:
+                if voisin not in parents:
+                    f.enfiler(voisin)
+                    parents[voisin] = sommet  
 
     def jete_flash(self):
         pass
@@ -177,6 +186,7 @@ class Joueur():
 class Projectile(): # Flash, leurre... (tout ce qui est jetable)
     def __init__(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, joueur, labyrinthe, distance_nb_case):
         self.vitesse = vitesse
+        self.doit_etre_detruit = False
         self.image = pygame.image.load(chemin_image).convert_alpha()
         self.fichier_son = fichier_son
         self.type = type 
@@ -200,10 +210,10 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
 
     def lancer(self, labyrinthe):
         case = labyrinthe.laby[self.case_i][self.case_j]
-        collision_mur = {"N": self.coord_y<case.y1, "S": self.coord_y>case.y2, "E": self.coord_x>case.x2, "W": self.coord_x<case.x1}
+        collision_mur = {"N": [self.coord_y<case.y1, case.murN], "S": [self.coord_y>case.y2, case.murS], "E": [self.coord_x>case.x2, case.murE], "W": [self.coord_x<case.x1, case.murW]}
         self.mettre_a_jour_hitbox()
         self.mettre_a_jour_case(case)
-        if (self.case_arret.x1 < self.coord_x < self.case_arret.x2 and self.case_arret.y1 < self.coord_y < self.case_arret.y2) or collision_mur[self.direction]:
+        if (self.case_arret.x1 < self.coord_x < self.case_arret.x2 and self.case_arret.y1 < self.coord_y < self.case_arret.y2) or (collision_mur[self.direction][0] and collision_mur[self.direction][1]):
             self.explose() # si le projectile arrive a la case maximale ou se heurte a un mur, il explose
             self.debut = time.time() # pour calculer le temps avant la suppression du projectile a l'ecran
         else : 
@@ -222,10 +232,10 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
             pygame.mixer.Sound(self.fichier_son).play()
             self.produit_effet()
 
-
     def produit_effet(self):
         # produire l'effet voulu selon le type de projectile (grenade, flash, leurre...)
         pass
+
 class Piece():
     def __init__(self, chemin_image, largeur_image, hauteur_image, x, y):
         self.image = pygame.image.load(chemin_image).convert_alpha()
@@ -235,6 +245,7 @@ class Piece():
 class Jeux():
     def __init__(self, couleur, titre):
         self.labels, self.pieces, self.personnages= [], [], []
+        self.projectile = []
         pygame.init()
         pygame.mixer.init()
         self.clock = pygame.time.Clock()
@@ -305,13 +316,13 @@ class Jeux():
         case = self.labyrinthe.laby[i][j]
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
-        decal = self.long_mur*0.3
-        self.personnages.append(Joueur(vitesse_relative, case.x1+decal, case.y1+decal, i, j, "N", largeur_relative, hauteur_relative, 
+        self.personnages.append(Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, 
                             chemin_image, nb_flash, nb_leurre, est_joueur, pieces_a_recup))
-        self.joueur = self.personnages[0]
+        if est_joueur: self.joueur = self.personnages[-1] # si le nb de pieces a recup est > 0 = c le joueur (ennemies n'en recup pas)
 
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
-        self.projectile = Projectile(vitesse, chemin_image, fichier_son, type, largeur, hauteur, self.joueur, self.labyrinthe, distance_max)
+        projectile = Projectile(vitesse, chemin_image, fichier_son, type, largeur, hauteur, self.joueur, self.labyrinthe, distance_max)
+        self.projectile.append(projectile)
 
     def creer_pieces(self, nb_pieces, chemin_image, labyrinthe, joueur, longeur_mur):
         joueur.pieces_a_recup = nb_pieces
@@ -324,23 +335,29 @@ class Jeux():
             self.pieces.append(piece)
 
     def afficher_entitee(self, liste_entites):
-        if liste_entites == self.labels: [self.fenetre.blit(label, (x, y)) for label, x, y, w, h, nom in self.labels]
-        else:
-            for entite in liste_entites: 
-                self.fenetre.blit(pygame.transform.scale(entite.image, (entite.largeur, entite.hauteur)), (entite.x1, entite.y1))
-                if liste_entites == self.personnages: self.tourner_modele(entite)
+        if liste_entites == self.labels: [self.fenetre.blit(label, (x, y)) for label, x, y, w, h, nom in self.labels]; return None
+        for entite in liste_entites: 
+            self.fenetre.blit(pygame.transform.scale(entite.image, (entite.largeur, entite.hauteur)), (entite.x1, entite.y1))
+            if liste_entites == self.personnages: self.tourner_modele(entite)
+            if liste_entites == self.projectile: entite.avance(self.long_mur)
+
+    def mettre_a_jour_ennemies(self):
+        for ennemie in self.personnages:
+            if ennemie is not self.joueur:
+                ennemie.deplacer_ennemie(self.joueur, self.labyrinthe, self.long_mur)
+    
+    def mettre_a_jour_projectile(self):
+        for projectile in self.projectile:
+            if projectile.doit_etre_detruit:
+                self.projectile.remove(projectile)
 
     def tourner_modele(self, personnage): 
-        if personnage.direction == "W": personnage.image = personnage.image_gauche
-        if personnage.direction == "E": personnage.image = personnage.image_droite
-        if personnage.direction == "N": personnage.image = personnage.image_haut
-        if personnage.direction == "S": personnage.image = personnage.image_bas 
-        
+        regard_relie_image = {"W": personnage.image_gauche, "E": personnage.image_droite, "N": personnage.image_haut, "S": personnage.image_bas }
+        personnage.image = regard_relie_image[personnage.direction]
+
     def tourner_regard(self, touche_pressee, personnage):
-        if touche_pressee == "z" : personnage.direction = "N"
-        if touche_pressee == "s" : personnage.direction = "S"
-        if touche_pressee == "d" : personnage.direction = "E"
-        if touche_pressee == "q" : personnage.direction = "W"
+        direction_relie_regard = {"z":"N", "s":"S", "d":"E", "q":"W"}
+        personnage.direction = direction_relie_regard[touche_pressee]
 
     def changement_de_case(self, personnage):
         case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
@@ -350,52 +367,61 @@ class Jeux():
         if personnage.coord_y > case.y2: personnage.case_j += 1
 
     def collision_mur(self, personnage):
-        case = case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
-        if case.y1>personnage.y1 and case.murN : personnage.coord_y = case.y1+personnage.hauteur/2
-        if case.x1>personnage.x1 and case.murW : personnage.coord_x = case.x1+personnage.largeur/2
-        if case.y2<personnage.y2 and case.murS : personnage.coord_y = case.y2-personnage.hauteur/2
-        if case.x2<personnage.x2 and case.murE : personnage.coord_x = case.x2-personnage.largeur/2
+        case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
+        for personnage in self.personnages:
+            if case.y1>personnage.y1 and case.murN : personnage.coord_y = case.y1+personnage.hauteur/2
+            if case.x1>personnage.x1 and case.murW : personnage.coord_x = case.x1+personnage.largeur/2
+            if case.y2<personnage.y2 and case.murS : personnage.coord_y = case.y2-personnage.hauteur/2
+            if case.x2<personnage.x2 and case.murE : personnage.coord_x = case.x2-personnage.largeur/2
 
     def collision_ennemie(self):
-        pass
+        for i in range(1, len(self.personnages)):
+            ennemie = self.personnages[i]
+            coins_joueur = [[self.joueur.x1, self.joueur.x2], [self.joueur.y1, self.joueur.y2]]
+            for i in range(2):
+                for j in range(2):
+                    point_x, point_y = coins_joueur[0][i], coins_joueur[1][j]
+                    if ennemie.x1 < point_x < ennemie.x2 and ennemie.y1 < point_y < ennemie.y2 :
+                        self.joueur_meurt()
+
+    def joueur_meurt(self):
+        print("joueur mort")
+
     def collision_piece(self):
         for piece in self.pieces:
-            if piece.x1 < self.joueur.coord_x < piece.x2 and piece.y1 < self.joueur.coord_y < piece.y2:
-                piece.recoltee = True
-                self.joueur.pieces_possedee += 1
-                self.pieces.remove(piece)
+            coins_piece = [[piece.x1, piece.x2], [piece.y1, piece.y2]]
+            for i in range(2):
+                for j in range(2):
+                    point_x, point_y = coins_piece[0][i], coins_piece[1][j]
+                    if self.joueur.x1 < point_x < self.joueur.x2 and self.joueur.y1 < point_y < self.joueur.y2:
+                        self.joueur.pieces_possedee += 1
+                        self.pieces.remove(piece)
 
-    def personnage_meurt(self, personnage): 
-        print("le joueur est mort")
+    def capacitee_destruction(self, a_clique = False, couleur = green):
+        if self.joueur.veut_detruire : 
+            case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
+            dico_conditions = {"S": [case.murS and self.joueur.case_j < self.labyrinthe.largeur-1, [case.x1, case.y2, case.x2, case.y2]], 
+                              "N": [case.murN and self.joueur.case_j > 0,[case.x1, case.y1, case.x2, case.y1]] ,
+                              "E": [case.murE and self.joueur.case_i < self.labyrinthe.hauteur-1,[case.x2, case.y1, case.x2, case.y2]], 
+                              "W": [case.murW and self.joueur.case_i > 0, [case.x1, case.y1, case.x1, case.y2]]}
+            direction = dico_conditions[self.joueur.direction]
+            x1, y1, x2, y2 = [direction[1][i] for i in range(4)]
+            if direction[0]:
+                if a_clique : 
+                    self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, self.joueur.direction) # si il a cliquer, on detruit le mur
+                    self.labyrinthe.creer_un_graphe() # et on met a jour le graphe pour les deplacements des ennemies
+                else :        
+                    [self.afficher_ligne(x1, y1, x2, y2, int(self.epaisseur_mur*1.33), couleur) ]# sinon on affiche le mur de couleur "couleur"
 
     def verifier_deplacement(self, touche_pressee): 
         """Tourner le regard du joueur, verifier si il y a une collision (mur ou ennemie), verifier si il a changer de case, le deplacer"""
-        self.collision_ennemie()
         self.collision_piece()        
         self.collision_mur(self.joueur)
+        self.collision_ennemie()
         self.tourner_regard(touche_pressee, self.joueur)
         self.changement_de_case(self.joueur)
-        self.joueur.deplacer(touche_pressee, self.long_mur, self.long_mur)
+        self.joueur.deplacer(touche_pressee, self.long_mur)
         
-    def si_joueur_veut_detruire(self, a_clique = False, couleur = green):
-        if self.joueur.veut_detruire : 
-            case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
-            if self.joueur.direction == "S" and case.murS and self.joueur.case_j < self.labyrinthe.largeur-1:
-                if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S") # si il a cliquer, on detruit le mur
-                else :        self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur) # sinon on affiche le mur de couleur "couleur"
-                
-            if self.joueur.direction == "N" and case.murN and self.joueur.case_j > 0 :
-                if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N")
-                else :        self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur)
-
-            if self.joueur.direction == "E" and case.murE and self.joueur.case_i < self.labyrinthe.hauteur-1:
-                if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E") 
-                else :        self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur)
-
-            if self.joueur.direction == "W" and case.murW and self.joueur.case_i > 0:
-                if a_clique : self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W")
-                else :        self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur)
-
     def verifications_touches_calvier_appuiees(self):
         touche_clavier = pygame.key.get_pressed()
         # On aurait pu les detecter dans un KEYDOWN mais ca marche nickel donc on change rien
@@ -408,7 +434,7 @@ class Jeux():
     def verifications_autres_touches(self):
         for evenement in pygame.event.get():
                 if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
-                    if self.joueur.veut_detruire : self.si_joueur_veut_detruire(True) 
+                    if self.joueur.veut_detruire : self.capacitee_destruction(True) 
                     for label, x, y, w, h, nom in self.labels:
                         if nom == "quitter" and x < evenement.pos[0] < x+w and y < evenement.pos[1] < y+h:
                             pygame.quit(); sys.exit() # on detruit la fenetre pygame puis on termine le processus correctement
@@ -435,11 +461,14 @@ class Jeux():
             self.fenetre.fill(black) # Tout effacer
             # Tout charger
             self.afficher_labyrinthe()
-            self.si_joueur_veut_detruire()
+            self.capacitee_destruction()
             self.afficher_entitee(self.pieces)
             self.afficher_entitee(self.personnages)
             self.afficher_entitee(self.labels)
-            pygame.display.flip() # tout réafficher
+            self.afficher_entitee(self.projectile)
+            self.mettre_a_jour_projectile()
+            self.mettre_a_jour_ennemies()
+            pygame.display.flip() # tout reafficher
 
             self.clock.tick(60)  # limites les FPS a 60 (ATTENTION ! Si on change le nombre de FPS, la vitesse est impactee !)
 
@@ -451,5 +480,5 @@ if __name__ == "__main__":
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
     jeu.creer_entite(2, "Logo_joueur.png", 0, 1, 1.5, 1.5, 0, 0, True, 0)
     jeu.creer_pieces(4,"piece.png", jeu.labyrinthe, jeu.personnages[0], jeu.long_mur)
-    jeu.creer_entite(20, "./yt.png", 10, 10, 1.5, 1.5, 0, 0, False, 0)
+    jeu.creer_entite(20, "yt.png", 10, 10, 1.5, 1.5, 0, 0, False, 0)
     jeu.boucle_jeu()
