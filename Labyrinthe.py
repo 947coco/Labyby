@@ -106,7 +106,7 @@ class Labyrinthe:
 
 
 class Joueur():
-    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_flash, nb_leurre, est_joueur, pieces_a_recup):
+    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_flash, nb_leurre, est_joueur, pieces_a_recup, nb_destruction, nb_construction):
         # differentes images pour diriger le modele en fonction de la direction du regard
         self.image_droite = pygame.image.load(chemin_image).convert_alpha()
         self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
@@ -126,6 +126,7 @@ class Joueur():
         self.pieces_possedee = 0
         self.pieces_a_recup = pieces_a_recup
         self.nb_flash, self.nb_leurre = nb_flash, nb_leurre 
+        self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
             
 
@@ -312,12 +313,12 @@ class Jeux():
                 if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
                 if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
 
-    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_flash, nb_leurre, est_joueur, pieces_a_recup):
+    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_flash, nb_leurre, est_joueur, pieces_a_recup,nb_destruction, nb_construction):
         case = self.labyrinthe.laby[i][j]
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
         self.personnages.append(Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, 
-                            chemin_image, nb_flash, nb_leurre, est_joueur, pieces_a_recup))
+                            chemin_image, nb_flash, nb_leurre, est_joueur, pieces_a_recup,nb_destruction, nb_construction))
         if est_joueur: self.joueur = self.personnages[-1] # si le nb de pieces a recup est > 0 = c le joueur (ennemies n'en recup pas)
 
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
@@ -329,10 +330,9 @@ class Jeux():
         for piece in range(nb_pieces):
             i, j = joueur.case_i, joueur.case_j
             while i == joueur.case_i and j == joueur.case_j:
-                i, j = random.randint(0, labyrinthe.largeur-1), random.randint(0, labyrinthe.hauteur-1)
+                i, j = random.randint(1, labyrinthe.largeur-1), random.randint(1, labyrinthe.hauteur-1)
             case = labyrinthe.laby[j][i]
-            piece = Piece(chemin_image, longeur_mur*0.5, longeur_mur*0.5, case.x1+longeur_mur*0.2, case.y1+longeur_mur*0.2)
-            self.pieces.append(piece)
+            self.pieces.append(Piece(chemin_image, longeur_mur*0.5, longeur_mur*0.5, case.x1+longeur_mur*0.2, case.y1+longeur_mur*0.2))
 
     def afficher_entitee(self, liste_entites):
         if liste_entites == self.labels: [self.fenetre.blit(label, (x, y)) for label, x, y, w, h, nom in self.labels]; return None
@@ -395,44 +395,80 @@ class Jeux():
                     point_x, point_y = coins_piece[0][i], coins_piece[1][j]
                     if self.joueur.x1 < point_x < self.joueur.x2 and self.joueur.y1 < point_y < self.joueur.y2:
                         self.joueur.pieces_possedee += 1
-                        self.pieces.remove(piece)
+                        try : self.pieces.remove(piece)
+                        except : pass # parfois ca recupere 2 fois la piece (enfin je pense) et fait tout crasher donc je passe l'erreur
 
+    def joueur_va_se_coincer(self, case):
+        compteur = 0
+        murs = [case.murN , case.murS , case.murE , case.murW ]
+        for mur in murs: 
+            if mur: compteur += 1
+        return self.joueur.nb_destruction == 0 and compteur == 3
+    
     def si_joueur_veut_detruire(self, a_clique = "", couleur_destruction = white, couleur_construction = green):
         if self.joueur.veut_detruire : 
             case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
-
             if self.joueur.direction == "S" and self.joueur.case_j < self.labyrinthe.largeur-1:
                 if case.murS:
-                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S")       
-                    else :                                  self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                    
+                    if a_clique == "clique_gauche" and self.joueur.nb_destruction > 0:         
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S")       
+                        self.joueur.nb_destruction -= 1
+                    elif self.joueur.nb_destruction > 0 :
+                            self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
                 else :
-                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S", veut_construire=True)
-                    else :                                  self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_construction) # sinon on affiche le mur de couleur "couleur"
+                    if a_clique == "clique_droit" and self.joueur.nb_construction > 0 and not self.joueur_va_se_coincer(case):          
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S", veut_construire=True)
+                        self.joueur.nb_construction -= 1
+                    elif self.joueur.nb_construction > 0 :
+                            self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_construction) # sinon on affiche le mur de couleur "couleur"
                 
             if self.joueur.direction == "N" and self.joueur.case_j > 0 :
                 if case.murN:
-                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N")      
-                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur_destruction)
+                    if a_clique == "clique_gauche" and self.joueur.nb_destruction > 0:         
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N")      
+                        self.joueur.nb_destruction -= 1
+                    elif self.joueur.nb_destruction > 0 :
+                            self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur_destruction)
                 else :
-                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N", veut_construire=True)
-                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur_construction)
+                    if a_clique == "clique_droit" and self.joueur.nb_construction > 0 and not self.joueur_va_se_coincer(case):          
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N", veut_construire=True)
+                        self.joueur.nb_construction -= 1
+                    elif self.joueur.nb_construction > 0 :
+                            self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur_construction)
                 
 
             if self.joueur.direction == "E" and self.joueur.case_i < self.labyrinthe.hauteur-1:
                 if case.murE:
-                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E")      
-                    else :                                  self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                    if a_clique == "clique_gauche" and self.joueur.nb_destruction > 0:          
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E")      
+                        self.joueur.nb_destruction -= 1
+                    elif self.joueur.nb_destruction > 0:
+                        self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                        
                 else :
-                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E", veut_construire=True)
-                    else :                                  self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
+                    if a_clique == "clique_droit" and self.joueur.nb_construction > 0 and not self.joueur_va_se_coincer(case):          
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E", veut_construire=True)
+                        self.joueur.nb_construction -= 1
+                    elif self.joueur.nb_construction > 0:
+                        self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
+                        
 
             if self.joueur.direction == "W" and self.joueur.case_i > 0:
                 if case.murW:
-                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W")      
-                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                    if a_clique == "clique_gauche" and self.joueur.nb_destruction > 0:          
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W")      
+                        self.joueur.nb_destruction -= 1
+                    elif self.joueur.nb_destruction > 0:
+                        self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                        
                 else :
-                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W", veut_construire=True)
-                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
+                    if a_clique == "clique_droit" and self.joueur.nb_construction > 0 and not self.joueur_va_se_coincer(case):          
+                        self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W", veut_construire=True)
+                        self.joueur.nb_construction -= 1
+                    elif self.joueur.nb_construction > 0:
+                        self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
+                        
 
     def verifier_deplacement(self, touche_pressee): 
         """Tourner le regard du joueur, verifier si il y a une collision (mur ou ennemie), verifier si il a changer de case, le deplacer"""
@@ -502,7 +538,7 @@ if __name__ == "__main__":
     jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, red) 
     jeu.afficher_labyrinthe()
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
-    jeu.creer_entite(2, "Logo_joueur.png", 0, 1, 1.5, 1.5, 0, 0, True, 0)
-    jeu.creer_pieces(4,"piece.png", jeu.labyrinthe, jeu.personnages[0], jeu.long_mur)
-    jeu.creer_entite(20, "yt.png", 10, 10, 1.5, 1.5, 0, 0, False, 0)
+    jeu.creer_entite(2, "Logo_joueur.png", 0, 1, 1.5, 1.5, 0, 0, True, 0, 2, 2)
+    jeu.creer_pieces(20,"piece.png", jeu.labyrinthe, jeu.personnages[0], jeu.long_mur)
+    jeu.creer_entite(20, "yt.png", 10, 10, 1.5, 1.5, 0, 0, False, 0, 0, 0)
     jeu.boucle_jeu()
