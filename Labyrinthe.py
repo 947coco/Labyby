@@ -53,27 +53,27 @@ class Labyrinthe:
         if 0 <= i < self.hauteur-1 and not self.laby[i+1][j].vue: directions.append('E')
         return directions
 
-    def abattre_mur(self,i,j,dir,pile=False): # le False est pour quand on veut detruire un mur manuellement et pas pendant la generation du labyrinthe
+    def abattre_mur(self,i,j,dir,pile=False, veut_construire = False): # le False est pour quand on veut detruire un mur manuellement et pas pendant la generation du labyrinthe
         if dir == 'S': # on se dirige vers le sud
-            self.laby[i][j].murS = False # on abat le mur sud de la case courante
-            self.laby[i][j+1].murN = False # on abat le mur nord de la case situee en-dessous de la case courante
+            self.laby[i][j].murS = veut_construire # on abat le mur sud de la case courante
+            self.laby[i][j+1].murN = veut_construire # on abat le mur nord de la case situee en-dessous de la case courante
             self.laby[i][j+1].vue = True # cette case est alors marquee comme vue
             if pile: pile.empiler((i, j+1)) # on stocke les coordonnees de cette case dans la pile
         if dir == 'N':
-            self.laby[i][j].murN = False  
-            self.laby[i][j-1].murS = False  
+            self.laby[i][j].murN = veut_construire  
+            self.laby[i][j-1].murS = veut_construire  
             self.laby[i][j-1].vue = True 
             if pile: pile.empiler((i, j-1))  
         if dir == 'E':
-            self.laby[i][j].murE = False  
-            self.laby[i+1][j].murW = False 
+            self.laby[i][j].murE = veut_construire  
+            self.laby[i+1][j].murW = veut_construire 
             self.laby[i+1][j].vue = True 
             if pile: pile.empiler((i+1, j))  
         if dir == 'W':
-            self.laby[i][j].murW = False  
-            self.laby[i-1][j].murE = False  
+            self.laby[i][j].murW = veut_construire  
+            self.laby[i-1][j].murE = veut_construire  
             self.laby[i-1][j].vue = True 
-            if pile: pile.empiler((i-1, j))   
+            if pile: pile.empiler((i-1, j))  
 
     def generer(self):
         pile = Pile()
@@ -147,7 +147,7 @@ class Joueur():
 
     
     def deplacer_ennemie(self, joueur, labyrinthe, long_mur):
-        i, j = self.determiner_prochaine_case(joueur, labyrinthe)
+        i, j = 10, 10 #self.determiner_prochaine_case(joueur, labyrinthe)
         if i > self.case_i: self.deplacer("q", long_mur)
         if i < self.case_i: self.deplacer("d", long_mur)
         if j > self.case_j: self.deplacer("z", long_mur)
@@ -397,21 +397,42 @@ class Jeux():
                         self.joueur.pieces_possedee += 1
                         self.pieces.remove(piece)
 
-    def capacitee_destruction(self, a_clique = False, couleur = green):
+    def si_joueur_veut_detruire(self, a_clique = "", couleur_destruction = white, couleur_construction = green):
         if self.joueur.veut_detruire : 
             case = self.labyrinthe.laby[self.joueur.case_i][self.joueur.case_j]
-            dico_conditions = {"S": [case.murS and self.joueur.case_j < self.labyrinthe.largeur-1, [case.x1, case.y2, case.x2, case.y2]], 
-                              "N": [case.murN and self.joueur.case_j > 0,[case.x1, case.y1, case.x2, case.y1]] ,
-                              "E": [case.murE and self.joueur.case_i < self.labyrinthe.hauteur-1,[case.x2, case.y1, case.x2, case.y2]], 
-                              "W": [case.murW and self.joueur.case_i > 0, [case.x1, case.y1, case.x1, case.y2]]}
-            direction = dico_conditions[self.joueur.direction]
-            x1, y1, x2, y2 = [direction[1][i] for i in range(4)]
-            if direction[0]:
-                if a_clique : 
-                    self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, self.joueur.direction) # si il a cliquer, on detruit le mur
-                    self.labyrinthe.creer_un_graphe() # et on met a jour le graphe pour les deplacements des ennemies
-                else :        
-                    [self.afficher_ligne(x1, y1, x2, y2, int(self.epaisseur_mur*1.33), couleur) ]# sinon on affiche le mur de couleur "couleur"
+
+            if self.joueur.direction == "S" and self.joueur.case_j < self.labyrinthe.largeur-1:
+                if case.murS:
+                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S")       
+                    else :                                  self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                else :
+                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "S", veut_construire=True)
+                    else :                                  self.afficher_ligne(case.x1, case.y2, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_construction) # sinon on affiche le mur de couleur "couleur"
+                
+            if self.joueur.direction == "N" and self.joueur.case_j > 0 :
+                if case.murN:
+                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N")      
+                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur_destruction)
+                else :
+                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "N", veut_construire=True)
+                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x2, case.y1, int(self.epaisseur_mur*1.33), couleur_construction)
+                
+
+            if self.joueur.direction == "E" and self.joueur.case_i < self.labyrinthe.hauteur-1:
+                if case.murE:
+                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E")      
+                    else :                                  self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                else :
+                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "E", veut_construire=True)
+                    else :                                  self.afficher_ligne(case.x2, case.y1, case.x2, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
+
+            if self.joueur.direction == "W" and self.joueur.case_i > 0:
+                if case.murW:
+                    if a_clique == "clique_gauche":         self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W")      
+                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_destruction)
+                else :
+                    if a_clique == "clique_droit":          self.labyrinthe.abattre_mur(self.joueur.case_i, self.joueur.case_j, "W", veut_construire=True)
+                    else :                                  self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
 
     def verifier_deplacement(self, touche_pressee): 
         """Tourner le regard du joueur, verifier si il y a une collision (mur ou ennemie), verifier si il a changer de case, le deplacer"""
@@ -433,12 +454,15 @@ class Jeux():
 
     def verifications_autres_touches(self):
         for evenement in pygame.event.get():
-                if evenement.type == pygame.MOUSEBUTTONDOWN and evenement.button == 1:
-                    if self.joueur.veut_detruire : self.capacitee_destruction(True) 
-                    for label, x, y, w, h, nom in self.labels:
-                        if nom == "quitter" and x < evenement.pos[0] < x+w and y < evenement.pos[1] < y+h:
-                            pygame.quit(); sys.exit() # on detruit la fenetre pygame puis on termine le processus correctement
+                if evenement.type == pygame.MOUSEBUTTONDOWN:
+                    if evenement.button == 1:
+                        self.si_joueur_veut_detruire("clique_gauche") 
+                        for label, x, y, w, h, nom in self.labels:
+                            if nom == "quitter" and x < evenement.pos[0] < x+w and y < evenement.pos[1] < y+h:
+                                pygame.quit(); sys.exit() # on detruit la fenetre pygame puis on termine le processus correctement
                 
+                    if evenement.button == 3: # clique_droit
+                            self.si_joueur_veut_detruire("clique_droit") 
                
                 if evenement.type == pygame.KEYDOWN:    # Verifier si une touche est enfoncee 
                     if evenement.key == pygame.K_LSHIFT: self.joueur.vitesse *= 1.4 # courir
@@ -461,7 +485,7 @@ class Jeux():
             self.fenetre.fill(black) # Tout effacer
             # Tout charger
             self.afficher_labyrinthe()
-            self.capacitee_destruction()
+            self.si_joueur_veut_detruire()
             self.afficher_entitee(self.pieces)
             self.afficher_entitee(self.personnages)
             self.afficher_entitee(self.labels)
