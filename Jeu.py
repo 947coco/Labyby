@@ -1,4 +1,5 @@
 import pygame, codecs, random, time, sys, math
+from Dico_plus_grand import Dico_plus_grand
 
 """ Ne mettez aucun accent sinon ça affiche de mauvais caractères. 
 Quand on aura fini, il faudra separer les classes dans des fichiers distincts pour que ce soit plus clean
@@ -100,14 +101,14 @@ class Labyrinthe:
         self.generer()
 
     def creer_un_graphe(self):
-        dico_adjacence = {(x, y): [] for x in range(self.largeur) for y in range(self.hauteur)} # initialiser toutes les cases (i, j) sans voisins []
+        dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur) # initialiser toutes les cases (i, j) sans voisins []
         for i in range(self.largeur-1):           # ajouter les cases voisines grace a la presence ou non des murs
             for j in range(self.hauteur-1):
                 case = self.laby[j][i]
-                if not case.murN and j > 0: dico_adjacence[(i, j)].append((i, j-1))
-                if not case.murS : dico_adjacence[(i, j)].append((i, j+1))
-                if not case.murE : dico_adjacence[(i, j)].append((i+1, j))
-                if not case.murW and i > 0: dico_adjacence[(i, j)].append((i-1, j))
+                if not case.murN and j > 0: dico_adjacence.ajouter((i, j), (i, j-1))
+                if not case.murS : dico_adjacence.ajouter((i, j), (i, j+1))
+                if not case.murE : dico_adjacence.ajouter((i, j), (i+1, j))
+                if not case.murW and i > 0: dico_adjacence.ajouter((i, j), (i-1, j))
         return dico_adjacence
     
 
@@ -144,38 +145,41 @@ class Joueur():
         # deplacer le joueur en fonction de sa vitesse et de la touche appuiee
         if touche_pressee == "z" : self.coord_y -= self.vitesse/longeur_saut 
         if touche_pressee == "q" : self.coord_x -= self.vitesse/longeur_saut
-        if touche_pressee == "d" : self.coord_x += self.vitesse/longeur_saut
         if touche_pressee == "s" : self.coord_y += self.vitesse/longeur_saut
+        if touche_pressee == "d" : self.coord_x += self.vitesse/longeur_saut
         self.mettre_a_jour_hitbox()
     
     def deplacer_ennemie(self, long_mur):
         i, j = self.chemin[0]
-        if i > self.case_i: self.deplacer("q", long_mur)
-        if i < self.case_i: self.deplacer("d", long_mur)
-        if j > self.case_j: self.deplacer("z", long_mur)
-        if j < self.case_j: self.deplacer("s", long_mur)
+        if j < self.case_j: self.coord_y -= self.vitesse/long_mur
+        if i < self.case_i: self.coord_x -= self.vitesse/long_mur
+        if j > self.case_j: self.coord_y += self.vitesse/long_mur
+        if i > self.case_i: self.coord_x += self.vitesse/long_mur
         self.mettre_a_jour_hitbox()
 
     def C39_bfs_iteratif2(self, graphe, debut, fin):
         parents = {debut: None}
         f = File()
         f.enfiler(debut)
+        deja_visite = []
         while not f.est_vide():
             sommet = f.defiler()
+            deja_visite.append(sommet)
 
             if sommet == fin: # reconstruire le chemin
-                chemin = [fin]
-                while sommet != None:
+                chemin = []
+                while sommet is None:
                     chemin.append(sommet)
                     sommet = parents[sommet]
-                self.chemin = chemin[::-1]
-                print(self.chemin)
+                    chemin.reverse()
+                self.chemin = chemin
+                print("self.chemin", chemin[0])
 
-            for voisin in graphe[sommet]:
-                if voisin not in parents:
-                    f.enfiler(voisin)
+            for voisin in graphe.voisin_de(sommet):
+                if voisin not in deja_visite:
                     parents[voisin] = sommet  
-
+                    f.enfiler(voisin)
+    
     def jete_flash(self):
         pass
     def jete_leurre(self):
@@ -325,12 +329,11 @@ class Jeux():
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
         if est_joueur: 
-            entitee = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
-            self.joueur = entitee
+            self.joueur = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
         else :
-            entitee = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
-                             nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
-        self.personnages.append(entitee)
+            self.personnages.append(Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
+                             nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur))
+        
 
 
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
@@ -352,9 +355,9 @@ class Jeux():
 
     def mettre_a_jour_ennemies(self):
         for ennemie in self.personnages:
-            if ennemie != self.joueur:
-                ennemie.deplacer_ennemie(self.long_mur)
-                self.tourner_modele(ennemie)
+            print("ennemie traiter")
+            ennemie.deplacer_ennemie(self.long_mur)
+            self.tourner_modele(ennemie)
 
     def mettre_a_jour_projectile(self):
         for projectile in self.projectile:
@@ -561,6 +564,6 @@ if __name__ == "__main__":
     jeu.afficher_labyrinthe()
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
     jeu.creer_entite(2, "Logo_joueur.png", 0, 1, 1.5, 1.5, 10, 10, True, 0, 2, 2)
-    jeu.creer_pieces(20,"piece.png", jeu.labyrinthe, jeu.personnages[0], jeu.long_mur)
-    jeu.creer_entite(20, "yt.png", 10, 10, 1.5, 1.5, 0, 0 , False, 0, 0, 0)
+    jeu.creer_pieces(20,"piece.png", jeu.labyrinthe, jeu.joueur, jeu.long_mur)
+    jeu.creer_entite(1, "yt.png", 10, 10, 1.5, 1.5, 0, 0 , False, 0, 0, 0)
     jeu.boucle_jeu()
