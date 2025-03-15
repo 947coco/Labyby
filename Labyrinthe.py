@@ -185,8 +185,9 @@ class Joueur():
 
 
 class Projectile(): # Flash, leurre... (tout ce qui est jetable)
-    def __init__(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, joueur, labyrinthe, distance_nb_case):
+    def __init__(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, joueur, distance_nb_case):
         self.vitesse = vitesse
+        self.distance_nb_case = distance_nb_case
         self.doit_etre_detruit = False
         self.etat_post_explosion = False
         self.image = pygame.image.load(chemin_image).convert_alpha()
@@ -197,27 +198,16 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
         self.direction = joueur.direction
         self.coord_x, self.coord_y= joueur.coord_x, joueur.coord_y
         self.x_init, self.y_init = joueur.coord_x, joueur.coord_y
-        self.definir_case_arret(labyrinthe, joueur, distance_nb_case)
         self.mettre_a_jour_hitbox()
-        self.definir_case_arret(labyrinthe, joueur, distance_nb_case)
 
     def mettre_a_jour_hitbox(self):
         self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
         self.x2, self.y2 = self.coord_x+self.largeur/2, self.coord_y+self.hauteur/2 # bords droite et bas de la hitbox
 
-    def definir_case_arret(self, labyrinthe, joueur, distance_nb_case):
-        if self.direction == "N": self.case_arret = labyrinthe.laby[joueur.case_j-distance_nb_case][joueur.case_i]
-        if self.direction == "S": self.case_arret = labyrinthe.laby[joueur.case_j+distance_nb_case][joueur.case_i]
-        if self.direction == "E": self.case_arret = labyrinthe.laby[joueur.case_j][joueur.case_i+distance_nb_case]
-        if self.direction == "W": self.case_arret = labyrinthe.laby[joueur.case_j][joueur.case_i-distance_nb_case]
-
-    def lancer(self, labyrinthe, long_mur):
-        if self.etat_post_explosion:
-            self.explose(); return None
-        case = labyrinthe.laby[self.case_i][self.case_j]
-        collision_mur = {"N": [self.coord_y<case.y1, case.murN], "S": [self.coord_y>case.y2, case.murS], "E": [self.coord_x>case.x2, case.murE], "W": [self.coord_x<case.x1, case.murW]}
+    def lancer(self, long_mur, collision_mur):
         self.mettre_a_jour_hitbox()
-        if (self.case_arret.x1 < self.coord_x < self.case_arret.x2 and self.case_arret.y1 < self.coord_y < self.case_arret.y2) or (collision_mur[self.direction][0] and collision_mur[self.direction][1]):
+        if self.etat_post_explosion: self.explose(); return None
+        if long_mur*self.distance_nb_case - self.x_init or long_mur*self.distance_nb_case - self.y_init or collision_mur: 
             self.debut = time.time() # pour calculer le temps avant la suppression du projectile a l'ecran
             self.etat_post_explosion = True
         else : 
@@ -232,7 +222,7 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
     def explose(self):
         self.largeur *= 1.01
         self.hauteur *= 1.01
-        if time.time() - self.debut > 2:  # si l'explosion a duree plus de 2 secondes
+        if time.time() - self.debut > 1:  # si l'explosion a duree plus de 1 secondes
             pygame.mixer.Sound(self.fichier_son).play()
             self.produit_effet()
             self.doit_etre_detruit = True
@@ -326,8 +316,7 @@ class Jeux():
         if est_joueur: self.joueur = self.personnages[-1] # si le nb de pieces a recup est > 0 = c le joueur (ennemies n'en recup pas)
 
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
-        projectile = Projectile(vitesse, chemin_image, fichier_son, type, largeur, hauteur, self.joueur, self.labyrinthe, distance_max)
-        self.projectile.append(projectile)
+        self.projectile.append(Projectile(vitesse, chemin_image, fichier_son, type, largeur, hauteur, self.joueur, distance_max))
 
     def creer_pieces(self, nb_pieces, chemin_image, labyrinthe, joueur, longeur_mur):
         joueur.pieces_a_recup = nb_pieces
@@ -342,18 +331,17 @@ class Jeux():
         if liste_entites == self.labels: [self.fenetre.blit(label, (x, y)) for label, x, y, w, h, nom in self.labels]; return None
         for entite in liste_entites: 
             self.fenetre.blit(pygame.transform.scale(entite.image, (entite.largeur, entite.hauteur)), (entite.x1, entite.y1))
-            if liste_entites == self.personnages: self.tourner_modele(entite)
-            if liste_entites == self.projectile: entite.avance(self.long_mur)
 
     def mettre_a_jour_ennemies(self):
         for ennemie in self.personnages:
             if ennemie is not self.joueur:
                 ennemie.deplacer_ennemie(self.long_mur)
-    
+                self.tourner_modele(ennemie)
+
     def mettre_a_jour_projectile(self):
         for projectile in self.projectile:
             self.changement_de_case(projectile)
-            projectile.lancer(self.labyrinthe, self.long_mur)
+            projectile.lancer(self.long_mur, self.collision_mur(projectile))
             if projectile.doit_etre_detruit:
                 self.projectile.remove(projectile)
 
@@ -375,10 +363,11 @@ class Jeux():
     def collision_mur(self, personnage):
         case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
         for personnage in self.personnages:
-            if case.y1>personnage.y1 and case.murN : personnage.coord_y = case.y1+personnage.hauteur/2
-            if case.x1>personnage.x1 and case.murW : personnage.coord_x = case.x1+personnage.largeur/2
-            if case.y2<personnage.y2 and case.murS : personnage.coord_y = case.y2-personnage.hauteur/2
-            if case.x2<personnage.x2 and case.murE : personnage.coord_x = case.x2-personnage.largeur/2
+            if case.y1>personnage.y1 and case.murN : personnage.coord_y = case.y1+personnage.hauteur/2; return True
+            if case.x1>personnage.x1 and case.murW : personnage.coord_x = case.x1+personnage.largeur/2; return True
+            if case.y2<personnage.y2 and case.murS : personnage.coord_y = case.y2-personnage.hauteur/2; return True
+            if case.x2<personnage.x2 and case.murE : personnage.coord_x = case.x2-personnage.largeur/2; return True
+        return False
 
     def collision_ennemie(self):
         for i in range(1, len(self.personnages)):
