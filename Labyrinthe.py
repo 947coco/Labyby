@@ -85,7 +85,7 @@ class Labyrinthe:
             directions = self.directions_possibles(i, j)
             pile.depiler() if len(directions) == 0 else self.abattre_mur(i, j, random.choice(directions), pile) 
         # destruction de x% de murs pour un labyrinthe plus ouvert
-        for k in range(int(4*self.hauteur*self.largeur * 0.12)): 
+        for k in range(int(4*self.hauteur*self.largeur * 0.05)): 
             x, y = random.randint(2, self.hauteur-2), random.randint(2, self.largeur-2)
             direction = random.choice(["W", "E", "N", "S"])
             self.abattre_mur(x,y,direction,pile) 
@@ -198,6 +198,7 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
         self.direction = joueur.direction
         self.coord_x, self.coord_y= joueur.coord_x, joueur.coord_y
         self.x_init, self.y_init = joueur.coord_x, joueur.coord_y
+        self.mur_doit_etre_detruit = False
         self.mettre_a_jour_hitbox()
 
     def mettre_a_jour_hitbox(self):
@@ -208,9 +209,13 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
         self.mettre_a_jour_hitbox()
         if self.etat_post_explosion: self.explose(labyrinthe); return None
         distance_lancer = long_mur*self.distance_nb_case
-        if  ((abs(self.coord_x - self.x_init) > distance_lancer or abs(self.coord_y - self.y_init) > distance_lancer)) or self.arret_mur(labyrinthe): 
+        if  ((abs(self.coord_x - self.x_init) > distance_lancer or abs(self.coord_y - self.y_init) > distance_lancer)): 
             self.debut = time.time() # pour calculer le temps avant la suppression du projectile a l'ecran
             self.etat_post_explosion = True
+        elif self.arret_mur(labyrinthe):
+            self.debut = time.time() # pour
+            self.etat_post_explosion = True
+            self.mur_doit_etre_detruit = True
         else : 
             self.avance(long_mur) 
 
@@ -234,7 +239,7 @@ class Projectile(): # Flash, leurre... (tout ce qui est jetable)
             self.doit_etre_detruit = True
 
     def produit_effet(self, labyrinthe):
-        if self.type == "grenade": labyrinthe.abattre_mur(self.case_i, self.case_j, self.direction)
+        if self.type == "grenade" and self.mur_doit_etre_detruit: labyrinthe.abattre_mur(self.case_i, self.case_j, self.direction)
         elif self.type == "leurre": pass # attirer ennemies
         
 class Piece():
@@ -340,7 +345,7 @@ class Jeux():
 
     def mettre_a_jour_ennemies(self):
         for ennemie in self.personnages:
-            if ennemie is not self.joueur:
+            if ennemie != self.joueur:
                 ennemie.deplacer_ennemie(self.long_mur)
                 self.tourner_modele(ennemie)
 
@@ -468,7 +473,12 @@ class Jeux():
                     elif self.joueur.nb_construction > 0:
                         self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
                         
-
+    def lancer_projectile(self, type, distance_max, maintient):
+        temps_maintient = time.time()-maintient
+        if temps_maintient> distance_max: distance_lance = distance_max
+        else :  distance_lance = round(temps_maintient)
+        self.creer_projectile(60, "yt.png", "boom.mp3", type, self.long_mur/2, self.long_mur/2, distance_lance*1.7)
+        
     def verifier_deplacement(self, touche_pressee): 
         """Tourner le regard du joueur, verifier si il y a une collision (mur ou ennemie), verifier si il a changer de case, le deplacer"""
         self.collision_piece()        
@@ -517,12 +527,7 @@ class Jeux():
                         if self.joueur.nb_leurre > 0:
                             self.lancer_projectile("leurre", 6, self.maintient_flash) 
                     if evenement.key == pygame.K_f: pass
-
-    def lancer_projectile(self, type, distance_max, maintient):
-        temps_maintient = time.time()-maintient
-        if temps_maintient> distance_max: distance_lance = distance_max
-        else :  distance_lance = round(temps_maintient)
-        self.creer_projectile(60, "yt.png", "boom.mp3", type, self.long_mur/2, self.long_mur/2, distance_lance) 
+ 
                     
     def boucle_jeu(self):
         while True :
