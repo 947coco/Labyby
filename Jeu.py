@@ -1,4 +1,4 @@
-import pygame, codecs, random, time, sys
+import pygame, codecs, random, time, sys, math
 
 """ Ne mettez aucun accent sinon ça affiche de mauvais caractères. 
 Quand on aura fini, il faudra separer les classes dans des fichiers distincts pour que ce soit plus clean
@@ -113,7 +113,7 @@ class Labyrinthe:
 
 
 class Joueur():
-    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, nb_leurre, pieces_a_recup, nb_destruction, nb_construction):
+    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, nb_leurre, pieces_a_recup, nb_destruction, nb_construction, est_joueur=True, labyrinthe=None, joueur=None):
         # differentes images pour diriger le modele en fonction de la direction du regard
         self.image_droite = pygame.image.load(chemin_image).convert_alpha()
         self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
@@ -133,6 +133,8 @@ class Joueur():
         self.nb_grenade, self.nb_leurre = nb_grenade, nb_leurre 
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
+        if not est_joueur: 
+            self.chemin = self.C39_bfs_iteratif2(labyrinthe.graphe, (case_i, case_j), (joueur.case_i, joueur.case_j))
             
     def mettre_a_jour_hitbox(self):
         self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
@@ -147,7 +149,7 @@ class Joueur():
         self.mettre_a_jour_hitbox()
     
     def deplacer_ennemie(self, long_mur):
-        i, j = 10, 10 #self.chemin[0]
+        i, j = self.chemin[0]
         if i > self.case_i: self.deplacer("q", long_mur)
         if i < self.case_i: self.deplacer("d", long_mur)
         if j > self.case_j: self.deplacer("z", long_mur)
@@ -318,13 +320,18 @@ class Jeux():
                 if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
                 if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
 
-    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_flash, nb_leurre, est_joueur, pieces_a_recup,nb_destruction, nb_construction):
+    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_flash, nb_leurre, est_joueur, pieces_a_recup, nb_destruction, nb_construction):
         case = self.labyrinthe.laby[i][j]
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
-        self.personnages.append(Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, 
-                            chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction))
-        if est_joueur: self.joueur = self.personnages[-1] # si le nb de pieces a recup est > 0 = c le joueur (ennemies n'en recup pas)
+        if est_joueur: 
+            entitee = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
+            self.joueur = entitee
+        else :
+            entitee = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
+                             nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
+        self.personnages.append(entitee)
+
 
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
         self.projectile.append(Projectile(vitesse, chemin_image, fichier_son, type, largeur, hauteur, self.joueur, distance_max))
@@ -472,12 +479,12 @@ class Jeux():
                         self.joueur.nb_construction -= 1
                     elif self.joueur.nb_construction > 0:
                         self.afficher_ligne(case.x1, case.y1, case.x1, case.y2, int(self.epaisseur_mur*1.33), couleur_construction)
-                        
+  
     def lancer_projectile(self, type, distance_max, maintient):
         temps_maintient = time.time()-maintient
         if temps_maintient> distance_max: distance_lance = distance_max
-        else :  distance_lance = round(temps_maintient)
-        self.creer_projectile(60, "yt.png", "boom.mp3", type, self.long_mur/2, self.long_mur/2, distance_lance*1.7)
+        else :  distance_lance = math.ceil(temps_maintient)
+        self.creer_projectile(60, "yt.png", "boom.mp3", type, self.long_mur/2, self.long_mur/2, distance_lance*1.5)
         
     def verifier_deplacement(self, touche_pressee): 
         """Tourner le regard du joueur, verifier si il y a une collision (mur ou ennemie), verifier si il a changer de case, le deplacer"""
