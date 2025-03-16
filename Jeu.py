@@ -160,17 +160,27 @@ class Joueur():
         if self.case.milieu_y > self.coord_y: self.deplacer("s", long_mur)
         if self.case.milieu_x > self.coord_x: self.deplacer("d", long_mur)
         if self.x1 < self.case.milieu_x < self.x2 and self.y1 < self.case.milieu_y < self.y2 :
-            self.case = self.meilleur_case(arrivee, labyrinthe)
-        
-    def meilleur_case(self, arrivee, labyrinthe):
+            self.case = self.meilleur_case((self.case_i, self.case_j),arrivee, labyrinthe)
+
+    def chemin_entier(self, arrivee, labyrinthe):
+        i1, j1 = self.case_i, self.case_j
+        i2, j2 = arrivee
+        chemin = []
+        while i2 != i1 and j2 != j1:
+            case = self.meilleur_case((self.case_i, self.case_j), arrivee, labyrinthe, chemin)
+            case.vue = True
+            chemin.append(case)
+            # a reprendre
+    def meilleur_case(self, debut, arrivee, labyrinthe, chemin=[]):
         G = labyrinthe.graphe
         distance_min = 999
-        meilleur_case = random.choice(G.voisin_de((self.case_i, self.case_j)))
-        for (i, j) in G.voisin_de((self.case_i, self.case_j)):
+        meilleur_case = random.choice(G.voisin_de(debut))
+        for (i, j) in G.voisin_de(debut):
             distance = self.distance((i, j), arrivee)
-            if distance < distance_min and len(G.voisin_de((i, j))) > 1: # si la case se rapproche et qu'elle a plus de 1 voisin
+            case = labyrinthe.laby[i][j]
+            if distance < distance_min and len(G.voisin_de((i, j))) > 1 and case not in chemin: # si la case se rapproche et qu'elle a plus de 1 voisin
                 distance_min = distance
-                meilleur_case = labyrinthe.laby[i][j]
+                meilleur_case = case
         return meilleur_case
 
     def distance(self, depart, arrivee):
