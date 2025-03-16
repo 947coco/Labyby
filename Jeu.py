@@ -101,13 +101,13 @@ class Labyrinthe:
         self.generer()
 
     def creer_un_graphe(self):
-        dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur)
-        for i in range(self.largeur-1):           # ajouter les cases voisines grace a la presence ou non des murs
+        dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur) # initialiser toutes les cases (i, j) sans voisins []
+        for i in range(self.largeur-1):           # aiouter les cases voisines grace a la presence ou non des murs
             for j in range(self.hauteur-1):
                 case = self.laby[j][i]
                 if not case.murN and j > 0: dico_adjacence.ajouter((i, j), (i, j-1))
-                if not case.murS : dico_adjacence.ajouter((i, j), (i, j+1))
-                if not case.murE : dico_adjacence.ajouter((i, j), (i+1, j))
+                if not case.murS and j < self.hauteur: dico_adjacence.ajouter((i, j), (i, j+1))
+                if not case.murE and i < self.largeur: dico_adjacence.ajouter((i, j), (i+1, j))
                 if not case.murW and i > 0: dico_adjacence.ajouter((i, j), (i-1, j))
         return dico_adjacence
     
@@ -161,6 +161,7 @@ class Joueur():
             self.recherche_en_largeur(labyrinthe.graphe, (joueur.case_i, joueur.case_j), (self.case_i, self.case_j))
         if self.x1 < self.case.milieu_x < self.x2 and self.y1 < self.case.milieu_y < self.y2 :
             self.chemin.pop(0)
+            if self.chemin == []: self.recherche_en_largeur(labyrinthe.graphe, (joueur.case_i, joueur.case_j), (self.case_i, self.case_j))
             self.case = labyrinthe.laby[self.chemin[0][0]][self.chemin[0][1]]
         
 
