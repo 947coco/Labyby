@@ -74,7 +74,8 @@ class Labyrinthe:
             self.laby[i][j].murW = veut_construire  
             self.laby[i-1][j].murE = veut_construire  
             self.laby[i-1][j].vue = True 
-            if pile: pile.empiler((i-1, j))  
+            if pile: pile.empiler((i-1, j)) 
+        self.creer_un_graphe() 
 
     def generer(self):
         pile = Pile()
@@ -161,7 +162,7 @@ class Joueur():
     def meilleur_case(self, arrivee, labyrinthe):
         G = labyrinthe.graphe
         distance_min = 999
-        meilleur_case = labyrinthe.laby[self.case_i][self.case_j]
+        meilleur_case = random.choice(G.voisin_de((self.case_i, self.case_j)))
         for (i, j) in G.voisin_de((self.case_i, self.case_j)):
             distance = self.distance((i, j), arrivee)
             if distance < distance_min and len(G.voisin_de((i, j))) > 1: # si la case se rapproche et qu'elle a plus de 1 voisin
