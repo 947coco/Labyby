@@ -134,6 +134,9 @@ class Joueur():
         self.nb_grenade, self.nb_leurre = nb_grenade, nb_leurre 
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
+        if not est_joueur:
+            self.chemin = self.recherche_en_largeur(labyrinthe.graphe, (self.case_i, self.case_j), (joueur.case_i, joueur.case_j))
+            self.numero_case = 0
         
             
     def mettre_a_jour_hitbox(self):
@@ -149,35 +152,32 @@ class Joueur():
         self.mettre_a_jour_hitbox()
     
     def deplacer_ennemie(self, long_mur):
-        i, j = 20, 20
+        i, j = self.chemin[self.numero_case]
         if j < self.case_j: self.coord_y -= self.vitesse/long_mur
         if i < self.case_i: self.coord_x -= self.vitesse/long_mur
         if j > self.case_j: self.coord_y += self.vitesse/long_mur
         if i > self.case_i: self.coord_x += self.vitesse/long_mur
         self.mettre_a_jour_hitbox()
 
-    def recherche_en_largeur(graph, debut, fin, visite, file):
+    def recherche_en_largeur(self, graphe, debut, fin):
         parents = {debut: None}
         f = File(debut)
-        visite[debut] = True
-        
+        visite = [debut]
         while not f.est_vide():
-            sommet = f.extraire()
-            if sommet == fin:
-                break
-            for voisin in graph[sommet]:
-                if not visite[voisin]:
-                    visite[voisin] = True
+            sommet = f.sommet()
+            if sommet == fin: break
+            for voisin in graphe.voisin_de(sommet):
+                if not voisin in visite:
+                    visite.append(voisin)
                     f.ajouter(voisin)
                     parents[voisin] = sommet
-        
-        # Construction du chemin du point A au point B
+        # Reconstruction du chemin 
         chemin = []
         sommet_actuel = fin
         while sommet_actuel is not None:
             chemin.append(sommet_actuel)
             sommet_actuel = parents[sommet_actuel]
-        return chemin[::-1]
+        self.chemin = chemin[::-1]
 
     
     def jete_flash(self):
