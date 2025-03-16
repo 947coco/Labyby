@@ -101,7 +101,7 @@ class Labyrinthe:
         self.generer()
 
     def creer_un_graphe(self):
-        dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur) # initialiser toutes les cases (i, j) sans voisins []
+        dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur)
         for i in range(self.largeur-1):           # ajouter les cases voisines grace a la presence ou non des murs
             for j in range(self.hauteur-1):
                 case = self.laby[j][i]
@@ -169,21 +169,22 @@ class Joueur():
         f = File()
         f.enfiler(debut)
         visite = [debut]
+        chemin = []
         while not f.est_vide():
             sommet = f.defiler()
             if sommet == fin: break
             for voisin in graphe.voisin_de(sommet):
-                if not voisin in visite:
+                if voisin not in visite:
                     visite.append(voisin)
                     f.enfiler(voisin)
                     parents[voisin] = sommet
         # Reconstruction du chemin 
-        chemin = []
         sommet_actuel = fin
         while sommet_actuel is not None:
             chemin.append(sommet_actuel)
             sommet_actuel = parents[sommet_actuel]
         self.chemin = chemin
+        print(chemin)
 
     
     def jete_flash(self):
