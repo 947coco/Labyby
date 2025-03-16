@@ -139,7 +139,7 @@ class Joueur():
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
         if not est_joueur:
-            self.case = self.meilleur_case((joueur.case_i, joueur.case_j), labyrinthe)
+            self.case = self.meilleur_case((self.case_i, self.case_j),(joueur.case_i, joueur.case_j), labyrinthe)
         
             
     def mettre_a_jour_hitbox(self):
