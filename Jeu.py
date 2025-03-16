@@ -135,8 +135,9 @@ class Joueur():
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
         if not est_joueur:
-            self.chemin = self.recherche_en_largeur(labyrinthe.graphe, (self.case_i, self.case_j), (joueur.case_i, joueur.case_j))
-            self.numero_case = 0
+            self.recherche_en_largeur(labyrinthe.graphe, (joueur.case_i, joueur.case_j), (self.case_i, self.case_j))
+            self.case = labyrinthe.laby[self.chemin[0][0]][self.chemin[0][1]]
+            self.creation = time.time()
         
             
     def mettre_a_jour_hitbox(self):
@@ -151,25 +152,30 @@ class Joueur():
         if touche_pressee == "d" : self.coord_x += self.vitesse/longeur_saut
         self.mettre_a_jour_hitbox()
     
-    def deplacer_ennemie(self, long_mur):
-        i, j = self.chemin[self.numero_case]
-        if j < self.case_j: self.coord_y -= self.vitesse/long_mur
-        if i < self.case_i: self.coord_x -= self.vitesse/long_mur
-        if j > self.case_j: self.coord_y += self.vitesse/long_mur
-        if i > self.case_i: self.coord_x += self.vitesse/long_mur
-        self.mettre_a_jour_hitbox()
+    def deplacer_ennemie(self, long_mur, joueur, labyrinthe):
+        if self.case.milieu_y < self.coord_y: self.deplacer("z", long_mur)
+        if self.case.milieu_x < self.coord_x: self.deplacer("q", long_mur)
+        if self.case.milieu_y > self.coord_y: self.deplacer("s", long_mur)
+        if self.case.milieu_x > self.coord_x: self.deplacer("d", long_mur)
+        if (time.time() - self.creation) % 3 == 0:
+            self.recherche_en_largeur(labyrinthe.graphe, (joueur.case_i, joueur.case_j), (self.case_i, self.case_j))
+        if self.x1 < self.case.milieu_x < self.x2 and self.y1 < self.case.milieu_y < self.y2 :
+            self.chemin.pop(0)
+            self.case = labyrinthe.laby[self.chemin[0][0]][self.chemin[0][1]]
+        
 
     def recherche_en_largeur(self, graphe, debut, fin):
         parents = {debut: None}
-        f = File(debut)
+        f = File()
+        f.enfiler(debut)
         visite = [debut]
         while not f.est_vide():
-            sommet = f.sommet()
+            sommet = f.defiler()
             if sommet == fin: break
             for voisin in graphe.voisin_de(sommet):
                 if not voisin in visite:
                     visite.append(voisin)
-                    f.ajouter(voisin)
+                    f.enfiler(voisin)
                     parents[voisin] = sommet
         # Reconstruction du chemin 
         chemin = []
@@ -177,7 +183,7 @@ class Joueur():
         while sommet_actuel is not None:
             chemin.append(sommet_actuel)
             sommet_actuel = parents[sommet_actuel]
-        self.chemin = chemin[::-1]
+        self.chemin = chemin
 
     
     def jete_flash(self):
@@ -354,7 +360,7 @@ class Jeux():
 
     def mettre_a_jour_ennemies(self):
         print("ennemie traiter")
-        [ennemie.deplacer_ennemie(self.long_mur) for ennemie in self.ennemies]
+        [ennemie.deplacer_ennemie(self.long_mur, self.joueur, self.labyrinthe) for ennemie in self.ennemies]
         self.collision_mur(self.ennemies)
         self.changement_de_case([self.joueur])
         self.changement_de_case(self.ennemies)
@@ -570,5 +576,5 @@ if __name__ == "__main__":
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
     jeu.creer_entite(2, "Logo_joueur.png", 0, 1, 1.5, 1.5, 10, 10, True, 0, 2, 2)
     jeu.creer_pieces(20,"piece.png", jeu.labyrinthe, jeu.joueur, jeu.long_mur)
-    jeu.creer_entite(1, "yt.png", 10, 10, 1.5, 1.5, 0, 0 , False, 0, 0, 0)
+    jeu.creer_entite(1, "yt.png", 10, 0, 1.5, 1.5, 0, 0 , False, 0, 0, 0)
     jeu.boucle_jeu()
