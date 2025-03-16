@@ -90,6 +90,9 @@ class Labyrinthe:
             x, y = random.randint(2, self.hauteur-2), random.randint(2, self.largeur-2)
             direction = random.choice(["W", "E", "N", "S"])
             self.abattre_mur(x,y,direction,pile) 
+        for sous_liste in self.laby:
+            for case in sous_liste: # re-initialiser les .vue pour apres
+                case.vue = False
 
         self.graphe = self.creer_un_graphe()    # enregistrer un dictionnaire d'adjacence avec la methode juste en-dessous
 
@@ -102,12 +105,12 @@ class Labyrinthe:
 
     def creer_un_graphe(self):
         dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur) # initialiser toutes les cases (i, j) sans voisins []
-        for i in range(self.largeur-1):           # ajouter les cases voisines grace a la presence ou non des murs
-            for j in range(self.hauteur-1):
-                case = self.laby[j][i]
+        for j in range(self.largeur):           # ajouter les cases voisines grace a la presence ou non des murs
+            for i in range(self.hauteur):
+                case = self.laby[i][j]
                 if not case.murN and j > 0: dico_adjacence.ajouter((i, j), (i, j-1))
-                if not case.murS : dico_adjacence.ajouter((i, j), (i, j+1))
-                if not case.murE : dico_adjacence.ajouter((i, j), (i+1, j))
+                if not case.murS and j < self.hauteur: dico_adjacence.ajouter((i, j), (i, j+1))
+                if not case.murE and i < self.largeur: dico_adjacence.ajouter((i, j), (i+1, j))
                 if not case.murW and i > 0: dico_adjacence.ajouter((i, j), (i-1, j))
         return dico_adjacence
     
@@ -148,15 +151,28 @@ class Joueur():
         if touche_pressee == "d" : self.coord_x += self.vitesse/longeur_saut
         self.mettre_a_jour_hitbox()
     
-    def deplacer_ennemie(self, long_mur):
-        i, j = 20, 20
-        if j < self.case_j: self.coord_y -= self.vitesse/long_mur
-        if i < self.case_i: self.coord_x -= self.vitesse/long_mur
-        if j > self.case_j: self.coord_y += self.vitesse/long_mur
-        if i > self.case_i: self.coord_x += self.vitesse/long_mur
-        self.mettre_a_jour_hitbox()
+    def deplacer_ennemie(self, long_mur, arrivee, labyrinthe):
+        case = self.meilleur_case(arrivee, labyrinthe)
+        if case.milieu_y < self.coord_y: self.deplacer("z", long_mur)
+        if case.milieu_x < self.coord_x: self.deplacer("q", long_mur)
+        if case.milieu_y > self.coord_y: self.deplacer("s", long_mur)
+        if case.milieu_x > self.coord_x: self.deplacer("d", long_mur)
 
+    def meilleur_case(self, arrivee, labyrinthe):
+        G = labyrinthe.graphe
+        distance_min = 999
+        meilleur_case = labyrinthe.laby[self.case_i][self.case_j]
+        for (i, j) in G.voisin_de((self.case_i, self.case_j)):
+            distance = self.distance((i, j), arrivee)
+            if distance < distance_min and len(G.voisin_de((i, j))) > 1: # si la case se rapproche et qu'elle a plus de 1 voisin
+                distance_min = distance
+                meilleur_case = labyrinthe.laby[i][j]
+        return meilleur_case
 
+    def distance(self, depart, arrivee):
+        i1, j1 = depart
+        i2, j2 = arrivee
+        return j2-j1 + i2-i1
     
     def jete_flash(self):
         pass
@@ -332,7 +348,7 @@ class Jeux():
 
     def mettre_a_jour_ennemies(self):
         print("ennemie traiter")
-        [ennemie.deplacer_ennemie(self.long_mur) for ennemie in self.ennemies]
+        [ennemie.deplacer_ennemie(self.long_mur, (self.joueur.case_i, self.joueur.case_j), self.labyrinthe) for ennemie in self.ennemies]
         self.collision_mur(self.ennemies)
         self.changement_de_case([self.joueur])
         self.changement_de_case(self.ennemies)
