@@ -578,5 +578,5 @@ if __name__ == "__main__":
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
     jeu.creer_entite(2, "Logo_joueur.png", 0, 1, 1.5, 1.5, 10, 10, True, 0, 2, 2)
     jeu.creer_pieces(20,"piece.png", jeu.labyrinthe, jeu.joueur, jeu.long_mur)
-    jeu.creer_entite(2.3, "yt.png", 10, 10, 1.5, 1.5, 0, 0 , False, 0, 0, 0)
+    jeu.creer_entite(2.3, "yt.png", 10, 10, 1, 1, 0, 0 , False, 0, 0, 0)
     jeu.boucle_jeu()
