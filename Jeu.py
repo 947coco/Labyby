@@ -134,8 +134,7 @@ class Joueur():
         self.nb_grenade, self.nb_leurre = nb_grenade, nb_leurre 
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
-        if not est_joueur: 
-            self.chemin = self.C39_bfs_iteratif2(labyrinthe.graphe, (case_i, case_j), (joueur.case_i, joueur.case_j))
+        
             
     def mettre_a_jour_hitbox(self):
         self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
@@ -150,34 +149,14 @@ class Joueur():
         self.mettre_a_jour_hitbox()
     
     def deplacer_ennemie(self, long_mur):
-        i, j = 0, 0#self.chemin[0]
+        i, j = 20, 20
         if j < self.case_j: self.coord_y -= self.vitesse/long_mur
         if i < self.case_i: self.coord_x -= self.vitesse/long_mur
         if j > self.case_j: self.coord_y += self.vitesse/long_mur
         if i > self.case_i: self.coord_x += self.vitesse/long_mur
         self.mettre_a_jour_hitbox()
 
-    def C39_bfs_iteratif2(self, graphe, debut, fin):
-        parents = {debut: None}
-        f = File()
-        f.enfiler(debut)
-        deja_visite = []
-        while not f.est_vide():
-            sommet = f.defiler()
-            deja_visite.append(sommet)
 
-            if sommet == fin: # reconstruire le chemin
-                chemin = []
-                while sommet is None:
-                    chemin.append(sommet)
-                    sommet = parents[sommet]
-                    chemin.reverse()
-                self.chemin = chemin
-
-            for voisin in graphe.voisin_de(sommet):
-                if voisin not in deja_visite:
-                    parents[voisin] = sommet  
-                    f.enfiler(voisin)
     
     def jete_flash(self):
         pass
@@ -358,6 +337,8 @@ class Jeux():
         for ennemie in self.personnages:
             if ennemie != self.joueur:
                 print("ennemie traiter")
+                #self.collision_mur(ennemie)
+                self.changement_de_case(ennemie)
                 ennemie.deplacer_ennemie(self.long_mur)
                 self.tourner_modele(ennemie)
 
