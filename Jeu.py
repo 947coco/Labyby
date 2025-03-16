@@ -374,7 +374,7 @@ class Jeux():
             if nom == "endurance":
                 peut_importe, new_h = self.unite_relatif(0, self.joueur.endurance/130)
                 self.labels[index][1] = self.joueur.x2+2
-                self.labels[index][2] = self.joueur.y1 
+                self.labels[index][2] = self.joueur.y1
                 self.labels[index][0] = pygame.transform.scale(label, (w, new_h))
 
     def mettre_a_jour_ennemies(self):
@@ -526,7 +526,6 @@ class Jeux():
         self.tourner_regard(touche_pressee, [self.joueur])
         self.changement_de_case([self.joueur])
         self.joueur.deplacer(touche_pressee, self.long_mur)
-        self.course_joueur()
         
     def verifications_touches_calvier_appuiees(self):
         touche_clavier = pygame.key.get_pressed()
@@ -596,6 +595,7 @@ class Jeux():
             self.mettre_a_jour_projectile()
             self.mettre_a_jour_ennemies()
             self.mettre_a_jour_barre_endurance()
+            self.course_joueur()
             pygame.display.flip() # tout reafficher
 
             self.clock.tick(60)  # limites les FPS a 60 (ATTENTION ! Si on change le nombre de FPS, la vitesse est impactee !)
