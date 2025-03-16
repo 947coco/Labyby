@@ -234,7 +234,7 @@ class Piece():
 
 class Jeux():
     def __init__(self, couleur, titre):
-        self.labels, self.pieces, self.personnages= [], [], []
+        self.labels, self.pieces, self.ennemies= [], [], []
         self.projectile = []
         pygame.init()
         pygame.mixer.init()
@@ -311,7 +311,7 @@ class Jeux():
         else :
             entite = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
                              nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
-            self.personnages.append(entite)
+            self.ennemies.append(entite)
         
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
         self.projectile.append(Projectile(vitesse, chemin_image, fichier_son, type, largeur, hauteur, self.joueur, distance_max))
@@ -332,11 +332,11 @@ class Jeux():
 
     def mettre_a_jour_ennemies(self):
         print("ennemie traiter")
-        [ennemie.deplacer_ennemie(self.long_mur) for ennemie in self.personnages]
-        self.collision_mur(self.personnages)
+        [ennemie.deplacer_ennemie(self.long_mur) for ennemie in self.ennemies]
+        self.collision_mur(self.ennemies)
         self.changement_de_case([self.joueur])
-        self.changement_de_case(self.personnages)
-        self.tourner_modele(self.personnages)
+        self.changement_de_case(self.ennemies)
+        self.tourner_modele(self.ennemies)
 
     def mettre_a_jour_projectile(self):
         self.changement_de_case(self.projectile)
@@ -372,8 +372,8 @@ class Jeux():
             if case.x2<personnage.x2 and case.murE : personnage.coord_x = case.x2-personnage.largeur/2; 
 
     def collision_ennemie(self):
-        for i in range(1, len(self.personnages)):
-            ennemie = self.personnages[i]
+        for i in range(1, len(self.ennemies)):
+            ennemie = self.ennemies[i]
             coins_joueur = [[self.joueur.x1, self.joueur.x2], [self.joueur.y1, self.joueur.y2]]
             for i in range(2):
                 for j in range(2):
@@ -530,7 +530,7 @@ class Jeux():
             self.afficher_labyrinthe()
             self.si_joueur_veut_detruire()
             self.afficher_entitee(self.pieces)
-            self.afficher_entitee(self.personnages)
+            self.afficher_entitee(self.ennemies)
             self.afficher_entitee([self.joueur])
             self.afficher_entitee(self.labels)
             self.afficher_entitee(self.projectile)
