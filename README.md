@@ -5,6 +5,9 @@ Le groupe est composé de 3 lycéens en Terminal general dont moi-même.
 création d’un jeu de labyrinthe codé sous Python 3 en Programmation Orientée Objet, projet conduit par des groupes de quatre élèves.
 (on est bien 3)
 
+## Lancer le jeu
+Lancer le fichier Jeu.py dans le dossier fichiers_python
+
 ## Le cahier des charges (consignes)
 Le programme doit être 100 % conçu orienté objet :
 - [x] il doit contenir plusieurs classes : par exemple Labyrinthe, Jeu, Personnages, Niveaux... 

@@ -1,0 +1,9 @@
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Lancer_jeu_sur_linux
+Comment=Exécuter le script Jeu.py
+Exec=sh -c "cd fichiers_python && python3 Jeu.py"
+Icon=utilities-terminal
+Terminal=true
+Categories=Application;Game;
