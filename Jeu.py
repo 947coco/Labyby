@@ -156,6 +156,28 @@ class Joueur():
         if i > self.case_i: self.coord_x += self.vitesse/long_mur
         self.mettre_a_jour_hitbox()
 
+    def recherche_en_largeur(graph, debut, fin, visite, file):
+        parents = {debut: None}
+        f = File(debut)
+        visite[debut] = True
+        
+        while not f.est_vide():
+            sommet = f.extraire()
+            if sommet == fin:
+                break
+            for voisin in graph[sommet]:
+                if not visite[voisin]:
+                    visite[voisin] = True
+                    f.ajouter(voisin)
+                    parents[voisin] = sommet
+        
+        # Construction du chemin du point A au point B
+        chemin = []
+        sommet_actuel = fin
+        while sommet_actuel is not None:
+            chemin.append(sommet_actuel)
+            sommet_actuel = parents[sommet_actuel]
+        return chemin[::-1]
 
     
     def jete_flash(self):
