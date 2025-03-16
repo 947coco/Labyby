@@ -138,6 +138,8 @@ class Joueur():
         self.nb_grenade, self.nb_leurre = nb_grenade, nb_leurre 
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
+        if not est_joueur:
+            self.case = self.meilleur_case((joueur.case_i, joueur.case_j), labyrinthe)
         
             
     def mettre_a_jour_hitbox(self):
@@ -153,12 +155,13 @@ class Joueur():
         self.mettre_a_jour_hitbox()
     
     def deplacer_ennemie(self, long_mur, arrivee, labyrinthe):
-        case = self.meilleur_case(arrivee, labyrinthe)
-        if case.milieu_y < self.coord_y: self.deplacer("z", long_mur)
-        if case.milieu_x < self.coord_x: self.deplacer("q", long_mur)
-        if case.milieu_y > self.coord_y: self.deplacer("s", long_mur)
-        if case.milieu_x > self.coord_x: self.deplacer("d", long_mur)
-
+        if self.case.milieu_y < self.coord_y: self.deplacer("z", long_mur)
+        if self.case.milieu_x < self.coord_x: self.deplacer("q", long_mur)
+        if self.case.milieu_y > self.coord_y: self.deplacer("s", long_mur)
+        if self.case.milieu_x > self.coord_x: self.deplacer("d", long_mur)
+        if self.x1 < self.case.milieu_x < self.x2 and self.y1 < self.case.milieu_y < self.y2 :
+            self.case = self.meilleur_case(arrivee, labyrinthe)
+        
     def meilleur_case(self, arrivee, labyrinthe):
         G = labyrinthe.graphe
         distance_min = 999
