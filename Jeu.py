@@ -132,14 +132,18 @@ class Joueur():
         self.mettre_a_jour_hitbox()
         # Autres
         self.vitesse = vitesse
+        self.vitesse_ini = vitesse
         self.direction = direction # direction du regard 
         self.pieces_possedee = 0
         self.pieces_a_recup = pieces_a_recup
         self.nb_grenade, self.nb_leurre = nb_grenade, nb_leurre 
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
+        if est_joueur : 
+            self.endurance = 120
+            self.cours_mtn = False
         if not est_joueur:
-            self.case = self.meilleur_case((self.case_i, self.case_j),(joueur.case_i, joueur.case_j), labyrinthe)
+            self.case = self.case_random( labyrinthe)
         
             
     def mettre_a_jour_hitbox(self):
@@ -160,17 +164,22 @@ class Joueur():
         if self.case.milieu_y > self.coord_y: self.deplacer("s", long_mur)
         if self.case.milieu_x > self.coord_x: self.deplacer("d", long_mur)
         if self.x1 < self.case.milieu_x < self.x2 and self.y1 < self.case.milieu_y < self.y2 :
-            self.case = self.meilleur_case((self.case_i, self.case_j),arrivee, labyrinthe)
+            self.case = self.case_random(labyrinthe)
 
     def chemin_entier(self, arrivee, labyrinthe):
         i1, j1 = self.case_i, self.case_j
         i2, j2 = arrivee
         chemin = []
         while i2 != i1 and j2 != j1:
-            case = self.meilleur_case((self.case_i, self.case_j), arrivee, labyrinthe, chemin)
+            case = self.case_random(labyrinthe)
             case.vue = True
             chemin.append(case)
             # a reprendre
+
+    def case_random(self, labyrinthe):
+        i, j = random.choice(labyrinthe.graphe.voisin_de((self.case_i, self.case_j)))
+        return labyrinthe.laby[i][j]
+    
     def meilleur_case(self, debut, arrivee, labyrinthe, chemin=[]):
         G = labyrinthe.graphe
         distance_min = 999
@@ -360,6 +369,14 @@ class Jeux():
         for entite in liste_entites: 
             self.fenetre.blit(pygame.transform.scale(entite.image, (entite.largeur, entite.hauteur)), (entite.x1, entite.y1))
 
+    def mettre_a_jour_barre_endurance(self):
+        for index, (label, x, y, w, h, nom) in enumerate(self.labels):
+            if nom == "endurance":
+                peut_importe, new_h = self.unite_relatif(0, self.joueur.endurance/130)
+                self.labels[index][1] = self.joueur.x2+2
+                self.labels[index][2] = self.joueur.y1 
+                self.labels[index][0] = pygame.transform.scale(label, (w, new_h))
+
     def mettre_a_jour_ennemies(self):
         print("ennemie traiter")
         [ennemie.deplacer_ennemie(self.long_mur, (self.joueur.case_i, self.joueur.case_j), self.labyrinthe) for ennemie in self.ennemies]
@@ -509,6 +526,7 @@ class Jeux():
         self.tourner_regard(touche_pressee, [self.joueur])
         self.changement_de_case([self.joueur])
         self.joueur.deplacer(touche_pressee, self.long_mur)
+        self.course_joueur()
         
     def verifications_touches_calvier_appuiees(self):
         touche_clavier = pygame.key.get_pressed()
@@ -519,6 +537,17 @@ class Jeux():
         if touche_clavier[pygame.K_d]: self.verifier_deplacement("d")
         self.tourner_modele([self.joueur])
  
+    def course_joueur(self):
+        if self.joueur.cours_mtn :
+            if self.joueur.endurance>10: 
+                self.joueur.endurance -= 1
+                self.joueur.vitesse = self.joueur.vitesse_ini*2.5
+            else :
+                self.joueur.vitesse = self.joueur.vitesse_ini
+                self.joueur.cours_mtn = False
+        else : 
+            self.joueur.endurance += 0.4
+            self.joueur.vitesse = self.joueur.vitesse_ini
 
     def verifications_autres_touches(self):
         for evenement in pygame.event.get():
@@ -533,7 +562,7 @@ class Jeux():
                             self.si_joueur_veut_detruire("clique_droit") 
                
                 if evenement.type == pygame.KEYDOWN:    # Verifier si une touche est enfoncee 
-                    if evenement.key == pygame.K_LSHIFT: self.joueur.vitesse *= 1.4 # courir
+                    if evenement.key == pygame.K_LSHIFT: self.joueur.cours_mtn = True
                     if evenement.key == pygame.K_SPACE:  self.joueur.veut_detruire = not self.joueur.veut_detruire
                     if evenement.key == pygame.K_e: self.maintient_flash = time.time()# maintient de la flash
                     if evenement.key == pygame.K_f: self.labyrinthe.regenerer() # maintient du leurre mais pr l'instant test du regenerer
@@ -541,7 +570,7 @@ class Jeux():
 
 
                 if evenement.type == pygame.KEYUP:   # Verifier si une touche est relachee
-                    if evenement.key == pygame.K_LSHIFT: self.joueur.vitesse /= 1.4 # ne plus courir
+                    if evenement.key == pygame.K_LSHIFT: self.joueur.cours_mtn = False
                     if evenement.key == pygame.K_a: 
                         if self.joueur.nb_grenade > 0:
                             self.lancer_projectile("grenade", 5, self.maintient_grenade)
@@ -566,6 +595,7 @@ class Jeux():
             self.afficher_entitee(self.projectile)
             self.mettre_a_jour_projectile()
             self.mettre_a_jour_ennemies()
+            self.mettre_a_jour_barre_endurance()
             pygame.display.flip() # tout reafficher
 
             self.clock.tick(60)  # limites les FPS a 60 (ATTENTION ! Si on change le nombre de FPS, la vitesse est impactee !)
@@ -573,10 +603,16 @@ class Jeux():
 
 if __name__ == "__main__":
     jeu = Jeux(black, "titre1")
-    jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, blue) 
+    jeu.creer_labyrinthe(45, 24, 3, 2, 2, 0.2, blue) 
     jeu.afficher_labyrinthe()
     jeu.creer_label(96, 0, 6, 4, red, "quitter")
-    jeu.creer_entite(2, "Logo_joueur.png", 0, 1, 1.5, 1.5, 10, 10, True, 0, 2, 2)
+    jeu.creer_label(94, 20, 0.5, 1, green, "endurance")
+    jeu.creer_entite(1.4, "Logo_joueur.png", 0, 1, 1.5, 1.5, 10, 10, True, 0, 2, 2)
     jeu.creer_pieces(20,"piece.png", jeu.labyrinthe, jeu.joueur, jeu.long_mur)
     jeu.creer_entite(4, "yt.png", 10, 10, 1, 1, 0, 0 , False, 0, 0, 0)
+    jeu.creer_entite(4, "yt.png", 30, 5, 1, 1, 0, 0 , False, 0, 0, 0)
+    jeu.creer_entite(4, "yt.png", 10, 10, 1, 1, 0, 0 , False, 0, 0, 0)
+    jeu.creer_entite(4, "yt.png", 0, 18, 1, 1, 0, 0 , False, 0, 0, 0)
+    jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0)
+
     jeu.boucle_jeu()
