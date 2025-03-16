@@ -91,8 +91,6 @@ class Labyrinthe:
             direction = random.choice(["W", "E", "N", "S"])
             self.abattre_mur(x,y,direction,pile) 
 
-        self.graphe = self.creer_un_graphe()    # enregistrer un dictionnaire d'adjacence avec la methode juste en-dessous
-
     def regenerer(self):
         for i in range(self.largeur-1):
             for j in range(self.hauteur-1):
@@ -100,21 +98,25 @@ class Labyrinthe:
                 case.vue, case.murN, case.murS, case.murE, case.murW = False, True, True, True, True
         self.generer()
 
-    def creer_un_graphe(self):
+    def creer_un_graphe(self, long_mur):
         dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur) # initialiser toutes les cases (i, j) sans voisins []
-        for i in range(self.largeur-1):  
-            for j in range(self.hauteur-1):
-                case = self.laby[j][i]
-                if not case.murN : dico_adjacence.ajouter((i, j), (i, j-1))
-                if not case.murS : dico_adjacence.ajouter((i, j), (i, j+1))
-                if not case.murE : dico_adjacence.ajouter((i, j), (i+1, j))
-                if not case.murW : dico_adjacence.ajouter((i, j), (i-1, j))
+        for index, sous_liste in enumerate(self.laby):
+            for sous_index, case in enumerate(sous_liste):
+                if not case.murN and index > 0: 
+                    dico_adjacence.ajouter((int(case.milieu_x), int(case.milieu_y)), (int(case.milieu_x), int(case.milieu_y)-long_mur))
+                if not case.murS and index < self.hauteur : 
+                    dico_adjacence.ajouter((int(case.milieu_x), int(case.milieu_y)), (int(case.milieu_x), int(case.milieu_y)+long_mur))
+                if not case.murE and sous_index < self.largeur: 
+                    dico_adjacence.ajouter((int(case.milieu_x), int(case.milieu_y)), (int(case.milieu_x)+long_mur, int(case.milieu_y)))
+                if not case.murW and sous_index > 0: 
+                    dico_adjacence.ajouter((int(case.milieu_x), int(case.milieu_y)), (int(case.milieu_x)-long_mur, int(case.milieu_y)))
         return dico_adjacence
     
 
 
 class Joueur():
-    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, nb_leurre, pieces_a_recup, nb_destruction, nb_construction, est_joueur=True, labyrinthe=None, joueur=None):
+    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, 
+            nb_leurre, pieces_a_recup, nb_destruction, nb_construction, est_joueur=True, labyrinthe=None, joueur=None):
         # differentes images pour diriger le modele en fonction de la direction du regard
         self.image_droite = pygame.image.load(chemin_image).convert_alpha()
         self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
@@ -135,10 +137,16 @@ class Joueur():
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
         if not est_joueur:
-            self.recherche_en_largeur(labyrinthe.graphe, (joueur.case_i, joueur.case_j), (self.case_i, self.case_j))
-            self.case = labyrinthe.laby[self.chemin[0][0]][self.chemin[0][1]]
+            self.trouver_chemin(labyrinthe, joueur)
+            self.case = self.chemin[0]
             self.creation = time.time()
-        
+
+    def trouver_chemin(self, labyrinthe, joueur):
+        case_ennemie = labyrinthe.laby[self.case_i][self.case_j]
+        coord_milieu_case_ennemie = (case_ennemie.milieu_x, case_ennemie.milieu_y)
+        case_joueur = labyrinthe.laby[joueur.case_i][joueur.case_j]
+        coord_milieu_case_joueur = (case_joueur.milieu_x, case_joueur.milieu_y)
+        self.recherche_en_largeur(labyrinthe.graphe, coord_milieu_case_joueur, coord_milieu_case_ennemie)
             
     def mettre_a_jour_hitbox(self):
         self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
@@ -153,16 +161,18 @@ class Joueur():
         self.mettre_a_jour_hitbox()
     
     def deplacer_ennemie(self, long_mur, joueur, labyrinthe):
-        if self.case.milieu_y < self.coord_y: self.deplacer("z", long_mur)
-        if self.case.milieu_x < self.coord_x: self.deplacer("q", long_mur)
-        if self.case.milieu_y > self.coord_y: self.deplacer("s", long_mur)
-        if self.case.milieu_x > self.coord_x: self.deplacer("d", long_mur)
+        if self.case[1] < self.coord_y: self.deplacer("z", long_mur)
+        if self.case[0] < self.coord_x: self.deplacer("q", long_mur)
+        if self.case[1] > self.coord_y: self.deplacer("s", long_mur)
+        if self.case[0] > self.coord_x: self.deplacer("d", long_mur)
         if (time.time() - self.creation) % 3 == 0:
-            self.recherche_en_largeur(labyrinthe.graphe, (joueur.case_i, joueur.case_j), (self.case_i, self.case_j))
-        if self.x1 < self.case.milieu_x < self.x2 and self.y1 < self.case.milieu_y < self.y2 :
+            self.trouver_chemin(labyrinthe, joueur)
+            self.case = self.chemin[0]
+        if self.x1 < self.case[0] < self.x2 and self.y1 < self.case[1] < self.y2 :
             self.chemin.pop(0)
-            if self.chemin == []: self.recherche_en_largeur(labyrinthe.graphe, (joueur.case_i, joueur.case_j), (self.case_i, self.case_j))
-            self.case = labyrinthe.laby[self.chemin[0][0]][self.chemin[0][1]]
+            if self.chemin == []: 
+                self.trouver_chemin(labyrinthe, joueur)    
+            self.case = self.chemin[0]
         
 
     def recherche_en_largeur(self, graphe, debut, fin):
@@ -331,6 +341,7 @@ class Jeux():
                 if case.murW: self.afficher_ligne(x1, y1, x1, y2, self.epaisseur_mur, self.couleur_labyrinthe)
                 if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
                 if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+        self.labyrinthe.graphe = self.labyrinthe.creer_un_graphe(self.long_mur)
 
     def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_flash, nb_leurre, est_joueur, pieces_a_recup, nb_destruction, nb_construction):
         case = self.labyrinthe.laby[i][j]
