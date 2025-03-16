@@ -308,14 +308,11 @@ class Jeux():
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
         if est_joueur: 
             self.joueur = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
-            entite = self.joueur
         else :
             entite = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
                              nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
-        self.personnages.append(entite)
+            self.personnages.append(entite)
         
-
-
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
         self.projectile.append(Projectile(vitesse, chemin_image, fichier_son, type, largeur, hauteur, self.joueur, distance_max))
 
@@ -334,39 +331,41 @@ class Jeux():
             self.fenetre.blit(pygame.transform.scale(entite.image, (entite.largeur, entite.hauteur)), (entite.x1, entite.y1))
 
     def mettre_a_jour_ennemies(self):
-        for ennemie in self.personnages:
-            if ennemie != self.joueur:
-                print("ennemie traiter")
-                #self.collision_mur(ennemie)
-                self.changement_de_case(ennemie)
-                ennemie.deplacer_ennemie(self.long_mur)
-                self.tourner_modele(ennemie)
+        print("ennemie traiter")
+        [ennemie.deplacer_ennemie(self.long_mur) for ennemie in self.personnages]
+        self.collision_mur(self.personnages)
+        self.changement_de_case([self.joueur])
+        self.changement_de_case(self.personnages)
+        self.tourner_modele(self.personnages)
 
     def mettre_a_jour_projectile(self):
+        self.changement_de_case(self.projectile)
         for projectile in self.projectile:
-            self.changement_de_case(projectile)
             projectile.lancer(self.long_mur, self.labyrinthe)
             if projectile.doit_etre_detruit:
                 self.projectile.remove(projectile)
 
-    def tourner_modele(self, personnage): 
-        regard_relie_image = {"W": personnage.image_gauche, "E": personnage.image_droite, "N": personnage.image_haut, "S": personnage.image_bas }
-        personnage.image = regard_relie_image[personnage.direction]
+    def tourner_modele(self, liste_personnage): 
+        for personnage in liste_personnage:
+            regard_relie_image = {"W": personnage.image_gauche, "E": personnage.image_droite, "N": personnage.image_haut, "S": personnage.image_bas }
+            personnage.image = regard_relie_image[personnage.direction]
 
-    def tourner_regard(self, touche_pressee, personnage):
+    def tourner_regard(self, touche_pressee, liste_personnage):
         direction_relie_regard = {"z":"N", "s":"S", "d":"E", "q":"W"}
-        personnage.direction = direction_relie_regard[touche_pressee]
+        for personnage in liste_personnage:
+            personnage.direction = direction_relie_regard[touche_pressee]
 
-    def changement_de_case(self, personnage):
-        case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
-        if personnage.coord_x < case.x1 : personnage.case_i -= 1
-        if personnage.coord_x > case.x2: personnage.case_i += 1
-        if personnage.coord_y < case.y1 : personnage.case_j -= 1
-        if personnage.coord_y > case.y2: personnage.case_j += 1
+    def changement_de_case(self, liste_personnage):
+        for personnage in liste_personnage:
+            case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
+            if personnage.coord_x < case.x1 : personnage.case_i -= 1
+            if personnage.coord_x > case.x2: personnage.case_i += 1
+            if personnage.coord_y < case.y1 : personnage.case_j -= 1
+            if personnage.coord_y > case.y2: personnage.case_j += 1
 
-    def collision_mur(self, personnage):
-        case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
-        for personnage in self.personnages:
+    def collision_mur(self, liste_personnage):
+        for personnage in liste_personnage:
+            case = self.labyrinthe.laby[personnage.case_i][personnage.case_j]
             if case.y1>personnage.y1 and case.murN : personnage.coord_y = case.y1+personnage.hauteur/2; 
             if case.x1>personnage.x1 and case.murW : personnage.coord_x = case.x1+personnage.largeur/2; 
             if case.y2<personnage.y2 and case.murS : personnage.coord_y = case.y2-personnage.hauteur/2; 
@@ -475,10 +474,10 @@ class Jeux():
     def verifier_deplacement(self, touche_pressee): 
         """Tourner le regard du joueur, verifier si il y a une collision (mur ou ennemie), verifier si il a changer de case, le deplacer"""
         self.collision_piece()        
-        self.collision_mur(self.joueur)
+        self.collision_mur([self.joueur])
         self.collision_ennemie()
-        self.tourner_regard(touche_pressee, self.joueur)
-        self.changement_de_case(self.joueur)
+        self.tourner_regard(touche_pressee, [self.joueur])
+        self.changement_de_case([self.joueur])
         self.joueur.deplacer(touche_pressee, self.long_mur)
         
     def verifications_touches_calvier_appuiees(self):
@@ -488,7 +487,7 @@ class Jeux():
         if touche_clavier[pygame.K_q]: self.verifier_deplacement("q")
         if touche_clavier[pygame.K_s]: self.verifier_deplacement("s")
         if touche_clavier[pygame.K_d]: self.verifier_deplacement("d")
-        self.tourner_modele(self.joueur)
+        self.tourner_modele([self.joueur])
  
 
     def verifications_autres_touches(self):
@@ -532,6 +531,7 @@ class Jeux():
             self.si_joueur_veut_detruire()
             self.afficher_entitee(self.pieces)
             self.afficher_entitee(self.personnages)
+            self.afficher_entitee([self.joueur])
             self.afficher_entitee(self.labels)
             self.afficher_entitee(self.projectile)
             self.mettre_a_jour_projectile()
