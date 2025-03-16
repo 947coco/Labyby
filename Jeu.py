@@ -150,7 +150,7 @@ class Joueur():
         self.mettre_a_jour_hitbox()
     
     def deplacer_ennemie(self, long_mur):
-        i, j = self.chemin[0]
+        i, j = 0, 0#self.chemin[0]
         if j < self.case_j: self.coord_y -= self.vitesse/long_mur
         if i < self.case_i: self.coord_x -= self.vitesse/long_mur
         if j > self.case_j: self.coord_y += self.vitesse/long_mur
@@ -173,7 +173,6 @@ class Joueur():
                     sommet = parents[sommet]
                     chemin.reverse()
                 self.chemin = chemin
-                print("self.chemin", chemin[0])
 
             for voisin in graphe.voisin_de(sommet):
                 if voisin not in deja_visite:
@@ -330,9 +329,11 @@ class Jeux():
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
         if est_joueur: 
             self.joueur = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
+            entite = self.joueur
         else :
-            self.personnages.append(Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
-                             nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur))
+            entite = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
+                             nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
+        self.personnages.append(entite)
         
 
 
@@ -355,9 +356,10 @@ class Jeux():
 
     def mettre_a_jour_ennemies(self):
         for ennemie in self.personnages:
-            print("ennemie traiter")
-            ennemie.deplacer_ennemie(self.long_mur)
-            self.tourner_modele(ennemie)
+            if ennemie != self.joueur:
+                print("ennemie traiter")
+                ennemie.deplacer_ennemie(self.long_mur)
+                self.tourner_modele(ennemie)
 
     def mettre_a_jour_projectile(self):
         for projectile in self.projectile:
