@@ -150,6 +150,7 @@ class Jeux():
     def __init__(self, couleur, titre):
         self.labels, self.pieces, self.personnages= [], [], []
         self.projectile = []
+        self.nb_niveau = 0
         pygame.init()
         pygame.mixer.init()
         self.clock = pygame.time.Clock()
@@ -183,6 +184,7 @@ class Jeux():
         if numero == 2: self.reinitialiser(30, 20, 3, 0.7, 0.7, 5, 70, 4, 7, 12, 30,   (25, 17))
         if numero == 3: self.reinitialiser(40, 20, 2, 0.8, 0.8, 15, 30, 5, 5, 20, 50,   (37, 16))
         if numero == 4: self.reinitialiser(10, 10, 5, 1, 1, 4, 15, 0, 0, 3, 25,   (0, 0))
+        
 
 
     # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci  
@@ -456,8 +458,6 @@ class Jeux():
         self.fenetre.blit(texte, texte_rect)
         pygame.display.flip()
         pygame.time.delay(2000)  # Attendre 2 secondes avant de quitter
-        pygame.quit()
-        sys.exit()
 
     def afficher_victoire(self):
         font = pygame.font.Font(None, 50)  
@@ -476,8 +476,10 @@ class Jeux():
         self.fenetre.blit(texte, (rect_x + 20, rect_y + 10))
         pygame.display.flip()  # Rafraîchir l'affichage
 
-        # Attendre 5 secondes avant de quitter 
-        pygame.time.delay(5000)
+        # Attendre 2 secondes avant de passer au prochain niveau 
+        time.sleep(2)
+        self.nb_niveau += 1
+        self.choisir_niveau(self.nb_niveau)
         """
         Mettre bouton prochain niveau
         """
@@ -696,5 +698,5 @@ if __name__ == "__main__":
         jeu.creer_entite(4, "yt.png", 0, 18, 1, 1, 0, 0 , False, 0, 0, 0)
         jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0) "
         """
-        jeu.choisir_niveau(0)
+        jeu.choisir_niveau(jeu.nb_niveau)
         jeu.boucle_jeu()
