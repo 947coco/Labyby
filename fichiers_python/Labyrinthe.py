@@ -59,6 +59,11 @@ class Labyrinthe:
         self.laby = [[Case() for i in range(largeur)] for x in range(hauteur)]
         self.generer()
 
+    def case_random(self):
+        j = random.randint(0, len(self.laby)-1)
+        i = random.randint(0, len(self.laby[0])-1)
+        return (i, j)
+    
     def creer_un_graphe(self):
         dico_adjacence = Dico_plus_grand(self.largeur, self.hauteur) # initialiser toutes les cases (i, j) sans voisins []
         for j in range(self.largeur):           # ajouter les cases voisines grace a la presence ou non des murs

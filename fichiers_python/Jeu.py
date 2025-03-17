@@ -1,14 +1,9 @@
 import pygame, codecs, random, time, sys, math # importation de modules
 # importation de nos classes
 from Labyrinthe import Labyrinthe 
-#from Joueur import Joueur  
 from Projectile import Projectile  
 from Menu import Menu   
 from Piece import Piece  
-from couleurs import *
-
-
-import pygame, random, sys
 from couleurs import *
 
 
@@ -164,8 +159,35 @@ class Jeux():
         #self.icon = pygame.image.load('logo.png')
         #pygame.display.set_icon(self.icon)
 
-    # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci    
-    
+    def reinitialiser(self,largeur_laby, hauteur_laby, vitesse_ennemies, largeur_ennemies, hauteur_ennemies, 
+                                nb_grenade, nb_tire, nb_construction, nb_destruction, nb_pieces, nb_ennemies, 
+                                case_joueur=(0, 0)):
+        self.labels, self.pieces, self.personnages= [], [], []
+        self.projectile = []
+        self.labyrinthe, self.joueur, self.nb_pieces_ini, self.maintient_grenade = None, None, nb_pieces, False
+        self.creer_labyrinthe(largeur_laby, hauteur_laby, 6, 6, 2, 0.2, blue)
+        self.afficher_labyrinthe()
+        print(self.labyrinthe.largeur, self.labyrinthe.hauteur)
+        self.creer_label(96, 0, 6, 4, red, "quitter")
+        self.creer_label(94, 20, 0.5, 1, green, "endurance")
+        self.creer_entite(1.4, "Logo_joueur.png", case_joueur[0], case_joueur[1], 1.5, 1.5, nb_grenade, nb_tire, True, nb_pieces, nb_destruction, nb_construction)
+        self.creer_pieces(nb_pieces,"piece.png", self.labyrinthe, self.joueur, self.long_mur)
+        for ennemie in range(nb_ennemies):
+            j, i = self.labyrinthe.case_random()
+            self.creer_entite(vitesse_ennemies, "yt.png", i, j, largeur_ennemies, hauteur_ennemies, 0, 0, False, 0, 0, 0)
+        self.joueur.pieces_a_recup = nb_pieces
+
+    def choisir_niveau(self, numero):
+        if numero == 0: self.reinitialiser(15, 15, 0.5, 0.4, 0.4, 10, 100, 10, 10, 3, 3,  (0, 0)) # tuto sympa
+        if numero == 1: self.reinitialiser(20, 20, 1, 0.5, 0.5, 7, 40, 4, 2, 8, 20,(10, 10))
+        if numero == 2: self.reinitialiser(30, 20, 3, 0.7, 0.7, 5, 70, 4, 7, 12, 30,   (25, 17))
+        if numero == 3: self.reinitialiser(40, 20, 2, 0.8, 0.8, 15, 30, 5, 5, 20, 50,   (37, 16))
+        if numero == 4: self.reinitialiser(10, 10, 5, 1, 1, 4, 15, 0, 0, 3, 25,   (0, 0))
+
+
+    # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci  
+
+
     def afficher_compteur_munition(self):
         pass # A FAIRE
     def afficher_compteur_flash(self):
@@ -309,7 +331,8 @@ class Jeux():
         self.labyrinthe = Labyrinthe(largeur, hauteur)
         self.labyrinthe.generer()
 
-    def afficher_labyrinthe(self):
+
+    def afficher_labyrinthe(self, que_assigner_coord=False):
         """
         Fonction pour afficher le labyrinthe. Explication :
         les coordonnees sont un melange de: 
@@ -325,21 +348,22 @@ class Jeux():
                 x2, y2 = x1+self.long_mur, y1+self.long_mur 
                 case = self.labyrinthe.laby[i][j]
                 case.assigner_coordonnees(x1, y1, x2, y2)
-                if case.murS: self.afficher_ligne(x1, y2, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murW: self.afficher_ligne(x1, y1, x1, y2, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                if not que_assigner_coord:
+                    if case.murS: self.afficher_ligne(x1, y2, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                    if case.murW: self.afficher_ligne(x1, y1, x1, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                    if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
+                    if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
         self.labyrinthe.graphe = self.labyrinthe.creer_un_graphe()
 
-    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_flash, nb_leurre, est_joueur, pieces_a_recup, nb_destruction, nb_construction):
+    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_grenade, nb_tire, est_joueur, pieces_a_recup, nb_destruction, nb_construction):
         case = self.labyrinthe.laby[i][j]
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
         if est_joueur: 
-            self.joueur = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
+            self.joueur = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_grenade, nb_tire, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
         else :
-            entite = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
-                             nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
+            entite = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_grenade, 
+                             nb_tire, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
             self.personnages.append(entite)
         
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
@@ -639,6 +663,7 @@ class Jeux():
             self.afficher_compteur_pieces()  
             self.afficher_barre_de_vie()  
             self.afficher_touches()  
+            if self.joueur.vie <= 0: self.joueur_meurt()
             pygame.display.flip()  
 
             self.clock.tick(60)  # Limiter les FPS à 60
@@ -658,6 +683,7 @@ if __name__ == "__main__":
     # Si un mode de jeu a été sélectionné, lancer le jeu
     if menu.mode_jeu:
         jeu = Jeux(black, "Labyrinthe Game")
+        """
         jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, blue)
         jeu.afficher_labyrinthe()
         jeu.creer_label(96, 0, 6, 4, red, "quitter")
@@ -668,5 +694,7 @@ if __name__ == "__main__":
         jeu.creer_entite(4, "yt.png", 30, 5, 1, 1, 0, 0 , False, 0, 0, 0)
         jeu.creer_entite(4, "yt.png", 10, 10, 1, 1, 0, 0 , False, 0, 0, 0)
         jeu.creer_entite(4, "yt.png", 0, 18, 1, 1, 0, 0 , False, 0, 0, 0)
-        jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0) 
+        jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0) "
+        """
+        jeu.choisir_niveau(4)
         jeu.boucle_jeu()
