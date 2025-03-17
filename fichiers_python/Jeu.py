@@ -183,7 +183,11 @@ class Jeux():
         if numero == 1: self.reinitialiser(20, 20, 1, 0.5, 0.5, 7, 40, 4, 2, 8, 20,(10, 10))
         if numero == 2: self.reinitialiser(30, 20, 3, 0.7, 0.7, 5, 70, 4, 7, 12, 30,   (25, 17))
         if numero == 3: self.reinitialiser(40, 20, 2, 0.8, 0.8, 15, 30, 5, 5, 20, 50,   (37, 16))
-        if numero == 4: self.reinitialiser(10, 10, 5, 1, 1, 4, 15, 0, 0, 3, 25,   (0, 0))
+        if numero == 4: self.reinitialiser(10, 10, 5, 1, 1, 4, 15, 0, 0, 20, 25,   (0, 0))
+        if numero == 5: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
+        if numero == 6: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
+        if numero == 7: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
+        if numero == 8: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
         
 
 
@@ -480,9 +484,6 @@ class Jeux():
         time.sleep(2)
         self.nb_niveau += 1
         self.choisir_niveau(self.nb_niveau)
-        """
-        Mettre bouton prochain niveau
-        """
 
     def collision_piece(self):
         for piece in self.pieces:
@@ -681,10 +682,12 @@ if __name__ == "__main__":
     # Afficher le menu
     menu = Menu(fenetre, largeur, hauteur)
     menu.boucle_menu()  # Afficher et gérer le menu
+    
 
     # Si un mode de jeu a été sélectionné, lancer le jeu
     if menu.mode_jeu:
         jeu = Jeux(black, "Labyrinthe Game")
+        jeu.choisir_niveau(menu.mode_jeu)
         """
         jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, blue)
         jeu.afficher_labyrinthe()
@@ -698,5 +701,4 @@ if __name__ == "__main__":
         jeu.creer_entite(4, "yt.png", 0, 18, 1, 1, 0, 0 , False, 0, 0, 0)
         jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0) "
         """
-        jeu.choisir_niveau(jeu.nb_niveau)
         jeu.boucle_jeu()
