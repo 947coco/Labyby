@@ -1,19 +1,14 @@
 import pygame, codecs, random, time, sys, math # importation de modules
 # importation de nos classes
 from Labyrinthe import Labyrinthe 
-#from Joueur import Joueur  
 from Projectile import Projectile  
 from Menu import Menu   
 from Piece import Piece  
 from couleurs import *
 
 
-import pygame, random, sys
-from couleurs import *
-
-
 class Joueur():
-    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, nb_leurre, pieces_a_recup, nb_destruction, nb_construction, est_joueur=True, labyrinthe=None, joueur=None):
+    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, nb_tire, pieces_a_recup, nb_destruction, nb_construction, est_joueur=True, labyrinthe=None, joueur=None):
         # Différentes images pour diriger le modèle en fonction de la direction du regard
         self.image_droite = pygame.image.load(chemin_image).convert_alpha()
         self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
@@ -33,17 +28,16 @@ class Joueur():
         self.direction = direction # direction du regard 
         self.pieces_possedee = 0
         self.pieces_a_recup = pieces_a_recup
-        self.nb_grenade, self.nb_leurre = nb_grenade, nb_leurre 
+        self.nb_grenade, self.nb_tire = nb_grenade, nb_tire
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
         self.veut_detruire = False
-        if est_joueur : 
-            self.endurance = 120
-            self.cours_mtn = False
-        if not est_joueur:
-            self.case = self.case_random( labyrinthe)
+        self.endurance = 120
+        self.cours_mtn = False
         self.vie = 100  # Le joueur a 100 PV
         self.dernier_degat = 0  # Timestamp du dernier dégât reçu
-            
+        self.dernier_tire = time.time()
+        if not est_joueur:
+            self.case = self.case_random(labyrinthe)
     def mettre_a_jour_hitbox(self):
         self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
         self.x2, self.y2 = self.coord_x+self.largeur/2, self.coord_y+self.hauteur/2 # bords droite et bas de la hitbox
@@ -116,12 +110,12 @@ class Joueur():
         """
 
 
-# Fonction afficher page chargement
+# Fonction pour afficher une page de chargement
 def afficher_chargement(fenetre, largeur, hauteur):
     font = pygame.font.Font(None, 74)
     clock = pygame.time.Clock()
     temps_debut = time.time()
-    while time.time() - temps_debut < 2:  # Simuler chargement 2 secondes
+    while time.time() - temps_debut < 2:  # Simuler un chargement de 2 secondes
         fenetre.fill(black)
         texte = font.render("Chargement...", True, white)
         texte_rect = texte.get_rect(center=(largeur // 2, hauteur // 2))
@@ -141,6 +135,11 @@ menu.gerer_evenements()
 # Lancer le jeu avec le mode sélectionné
 if menu.mode_jeu:
     print(f"Mode de jeu sélectionné : {menu.mode_jeu}")
+    # Vous pouvez maintenant initialiser votre jeu avec le mode sélectionné
+    # Par exemple :
+    # jeu = Jeux(black, "titre1")
+    # jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, blue)
+    # jeu.boucle_jeu()
 else:
     pygame.quit()
 
@@ -151,6 +150,7 @@ class Jeux():
     def __init__(self, couleur, titre):
         self.labels, self.pieces, self.personnages= [], [], []
         self.projectile = []
+        self.nb_niveau = 0
         pygame.init()
         pygame.mixer.init()
         self.clock = pygame.time.Clock()
@@ -163,7 +163,49 @@ class Jeux():
         pygame.display.set_caption(titre)
         #self.icon = pygame.image.load('logo.png')
         #pygame.display.set_icon(self.icon)
-  
+
+    def reinitialiser(self,largeur_laby, hauteur_laby, vitesse_ennemies, largeur_ennemies, hauteur_ennemies, 
+                                nb_grenade, nb_tire, nb_construction, nb_destruction, nb_pieces, nb_ennemies, 
+                                case_joueur=(0, 0)):
+        self.labels, self.pieces, self.personnages= [], [], []
+        self.projectile = []
+        self.labyrinthe, self.joueur, self.nb_pieces_ini, self.maintient_grenade = None, None, nb_pieces, False
+        self.creer_labyrinthe(largeur_laby, hauteur_laby, 6, 6, 2, 0.2, blue)
+        self.afficher_labyrinthe()
+        print(self.labyrinthe.largeur, self.labyrinthe.hauteur)
+        self.creer_label(96, 0, 6, 4, red, "quitter")
+        self.creer_label(94, 20, 0.5, 1, green, "endurance")
+        self.creer_entite(1.4, "Logo_joueur.png", case_joueur[0], case_joueur[1], 1.5, 1.5, nb_grenade, nb_tire, True, nb_pieces, nb_destruction, nb_construction)
+        self.creer_pieces(nb_pieces,"piece.png", self.labyrinthe, self.joueur, self.long_mur)
+        for ennemie in range(nb_ennemies):
+            j, i = self.labyrinthe.case_random()
+            self.creer_entite(vitesse_ennemies, "yt.png", i, j, largeur_ennemies, hauteur_ennemies, 0, 0, False, 0, 0, 0)
+        self.joueur.pieces_a_recup = nb_pieces
+
+    def choisir_niveau(self, numero):
+        if numero == 0: self.reinitialiser(15, 15, 0.5, 0.4, 0.4, 10, 100, 10, 10, 3, 3,  (0, 0)) # tuto sympa
+        if numero == 1: self.reinitialiser(20, 20, 1, 0.5, 0.5, 7, 40, 4, 2, 8, 20,(10, 10))
+        if numero == 2: self.reinitialiser(30, 20, 3, 0.7, 0.7, 5, 70, 4, 7, 12, 30,   (25, 17))
+        if numero == 3: self.reinitialiser(40, 20, 2, 0.8, 0.8, 15, 30, 5, 5, 20, 50,   (37, 16))
+        if numero == 4: self.reinitialiser(10, 10, 5, 1, 1, 4, 15, 0, 0, 20, 25,   (0, 0))
+        if numero == 5: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
+        if numero == 6: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
+        if numero == 7: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
+        if numero == 8: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
+        
+
+
+    # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci  
+
+
+    def afficher_compteur_munition(self):
+        pass # A FAIRE
+    def afficher_compteur_flash(self):
+        pass # A FAIRE
+    def afficher_compteur_leurre(self):
+        pass # A FAIRE
+    def afficher_compteur_boost_vitesse(self):
+        pass # A FAIR
 
     def afficher_barre_de_vie(self):
         vie_max = 100  # Vie maximale du joueur
@@ -200,8 +242,8 @@ class Jeux():
         # Position du rectangle et du texte
         rect_x, rect_y = 20, 20  
         self.fenetre.blit(fond, (rect_x, rect_y))
-        self.fenetre.blit(texte, (rect_x + 20, rect_y + 10))  
-        
+        self.fenetre.blit(texte, (rect_x + 20, rect_y + 10)) 
+
     def afficher_touches(self):
         font = pygame.font.Font(None, 36)
         touches = [
@@ -332,7 +374,6 @@ class Jeux():
         label = pygame.surface.Surface((w, h))
         label.fill(couleur)
         self.labels.append([label, x, y, w, h, nom])
-        
 
     def creer_labyrinthe(self, largeur, hauteur, marge_x, marge_y, longeur_mur, epaisseur_mur, couleur):
         # esthetique du labyrinthe en rapport �� l'affichage du labyrinthe avec pygame 
@@ -343,7 +384,8 @@ class Jeux():
         self.labyrinthe = Labyrinthe(largeur, hauteur)
         self.labyrinthe.generer()
 
-    def afficher_labyrinthe(self):
+
+    def afficher_labyrinthe(self, que_assigner_coord=False):
         """
         Fonction pour afficher le labyrinthe. Explication :
         les coordonnees sont un melange de: 
@@ -359,21 +401,22 @@ class Jeux():
                 x2, y2 = x1+self.long_mur, y1+self.long_mur 
                 case = self.labyrinthe.laby[i][j]
                 case.assigner_coordonnees(x1, y1, x2, y2)
-                if case.murS: self.afficher_ligne(x1, y2, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murW: self.afficher_ligne(x1, y1, x1, y2, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
-                if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                if not que_assigner_coord:
+                    if case.murS: self.afficher_ligne(x1, y2, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                    if case.murW: self.afficher_ligne(x1, y1, x1, y2, self.epaisseur_mur, self.couleur_labyrinthe)
+                    if case.murN: self.afficher_ligne(x1, y1, x2, y1, self.epaisseur_mur, self.couleur_labyrinthe)
+                    if case.murE: self.afficher_ligne(x2, y1, x2, y2, self.epaisseur_mur, self.couleur_labyrinthe)
         self.labyrinthe.graphe = self.labyrinthe.creer_un_graphe()
 
-    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_flash, nb_leurre, est_joueur, pieces_a_recup, nb_destruction, nb_construction):
+    def creer_entite(self, vitesse, chemin_image, i, j, largeur, hauteur, nb_grenade, nb_tire, est_joueur, pieces_a_recup, nb_destruction, nb_construction):
         case = self.labyrinthe.laby[i][j]
         vitesse_relative, peut_importe = self.unite_relatif(vitesse, 0)
         largeur_relative, hauteur_relative = self.unite_relatif(largeur, hauteur)
         if est_joueur: 
-            self.joueur = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
+            self.joueur = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_grenade, nb_tire, pieces_a_recup,nb_destruction, nb_construction, est_joueur)
         else :
-            entite = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_flash, 
-                             nb_leurre, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
+            entite = Joueur(vitesse_relative, case.milieu_x, case.milieu_y, i, j, "N", largeur_relative, hauteur_relative, chemin_image, nb_grenade, 
+                             nb_tire, pieces_a_recup,nb_destruction, nb_construction, est_joueur, self.labyrinthe, self.joueur)
             self.personnages.append(entite)
         
     def creer_projectile(self, vitesse, chemin_image, fichier_son, type, largeur, hauteur, distance_max):
@@ -411,7 +454,7 @@ class Jeux():
     def mettre_a_jour_projectile(self):
         self.changement_de_case(self.projectile)
         for projectile in self.projectile:
-            projectile.lancer(self.long_mur, self.labyrinthe)
+            projectile.lancer(self.long_mur, self.labyrinthe, self.personnages, self.joueur)
             if projectile.doit_etre_detruit:
                 self.projectile.remove(projectile)
 
@@ -446,15 +489,18 @@ class Jeux():
         for i in range(1, len(self.personnages)):
             ennemie = self.personnages[i]
             coins_joueur = [[self.joueur.x1, self.joueur.x2], [self.joueur.y1, self.joueur.y2]]
+            coin_ennemie = [[ennemie.x1, ennemie.x2], [ennemie.y1, ennemie.y2]]
             for i in range(2):
                 for j in range(2):
                     point_x, point_y = coins_joueur[0][i], coins_joueur[1][j]
-                    if ennemie.x1 < point_x < ennemie.x2 and ennemie.y1 < point_y < ennemie.y2:
-                        if temps_actuel - self.joueur.dernier_degat >= 3:  # Vérifier si 3 secondes se sont écoulées
-                            self.joueur.vie -= 10  # Le joueur perd 10 PV
-                            self.joueur.dernier_degat = temps_actuel  # Mettre à jour le dernier dégât
-                            if self.joueur.vie <= 0:
-                                self.joueur_meurt()
+                    for ennemie in self.personnages:
+                        point_ennemie_x, point_ennemie_y = coin_ennemie[0][i], coin_ennemie[1][j]
+                        if ennemie.x1 < point_x < ennemie.x2 and ennemie.y1 < point_y < ennemie.y2 or self.joueur.x1 < point_ennemie_x < self.joueur.x2 and self.joueur.y1 < point_ennemie_y < self.joueur.y2:
+                            if temps_actuel - self.joueur.dernier_degat >= 1:  # Vérifier si 3 secondes se sont écoulées
+                                self.joueur.vie -= 10  # Le joueur perd 10 PV
+                                self.joueur.dernier_degat = temps_actuel  # Mettre à jour le dernier dégât
+                                if self.joueur.vie <= 0:
+                                    self.joueur_meurt()
 
     def joueur_meurt(self):
         font = pygame.font.Font(None, 74)
@@ -463,8 +509,6 @@ class Jeux():
         self.fenetre.blit(texte, texte_rect)
         pygame.display.flip()
         pygame.time.delay(2000)  # Attendre 2 secondes avant de quitter
-        pygame.quit()
-        sys.exit()
 
     def afficher_victoire(self):
         font = pygame.font.Font(None, 50)  
@@ -483,11 +527,10 @@ class Jeux():
         self.fenetre.blit(texte, (rect_x + 20, rect_y + 10))
         pygame.display.flip()  # Rafraîchir l'affichage
 
-        # Attendre 5 secondes avant de quitter 
-        pygame.time.delay(5000)
-        """
-        Mettre bouton prochain niveau
-        """
+        # Attendre 2 secondes avant de passer au prochain niveau 
+        time.sleep(2)
+        self.nb_niveau += 1
+        self.choisir_niveau(self.nb_niveau)
 
     def collision_piece(self):
         for piece in self.pieces:
@@ -603,8 +646,13 @@ class Jeux():
         if touche_clavier[pygame.K_q]: self.verifier_deplacement("q")
         if touche_clavier[pygame.K_s]: self.verifier_deplacement("s")
         if touche_clavier[pygame.K_d]: self.verifier_deplacement("d")
+        if touche_clavier[pygame.K_e]: 
+            if self.joueur.nb_tire > 0 and time.time()-self.joueur.dernier_tire>0.4 :
+                self.joueur.dernier_tire = time.time() 
+                self.creer_projectile(70, "yt.png", "boom.mp3", "tire", self.long_mur/6, self.long_mur/6, 999)
         self.tourner_modele([self.joueur])
 
+ 
     def course_joueur(self):
         if self.joueur.cours_mtn :
             if self.joueur.endurance>10: 
@@ -616,13 +664,6 @@ class Jeux():
         else : 
             if self.joueur.endurance < 180: self.joueur.endurance += 0.4
             self.joueur.vitesse = self.joueur.vitesse_ini
-    
-    def afficher_bouton_quitter(self):
-        pygame.draw.rect(self.fenetre, self.bouton_quitter_couleur, self.bouton_quitter_rect)
-        font = pygame.font.Font(None, 36)
-        texte = font.render(self.bouton_quitter_texte, True, white)
-        texte_rect = texte.get_rect(center=self.bouton_quitter_rect.center)
-        self.fenetre.blit(texte, texte_rect)
 
     def verifications_autres_touches(self):
         for evenement in pygame.event.get():
@@ -639,9 +680,8 @@ class Jeux():
                 if evenement.type == pygame.KEYDOWN:    # Verifier si une touche est enfoncee 
                     if evenement.key == pygame.K_LSHIFT: self.joueur.cours_mtn = True
                     if evenement.key == pygame.K_SPACE:  self.joueur.veut_detruire = not self.joueur.veut_detruire
-                    if evenement.key == pygame.K_e: self.maintient_flash = time.time()
-                    if evenement.key == pygame.K_f: self.labyrinthe.regenerer() 
-                    if evenement.key == pygame.K_a: self.maintient_grenade = time.time() 
+                    if evenement.key == pygame.K_f: self.labyrinthe.regenerer(self.labyrinthe.largeur, self.labyrinthe.hauteur) # maintient du leurre mais pr l'instant test du regenerer
+                    if evenement.key == pygame.K_a: self.maintient_grenade = time.time() # maintient de la grenade
 
 
                 if evenement.type == pygame.KEYUP:   # Verifier si une touche est relachee
@@ -649,24 +689,22 @@ class Jeux():
                     if evenement.key == pygame.K_a: 
                         if self.joueur.nb_grenade > 0:
                             self.lancer_projectile("grenade", 5, self.maintient_grenade)
-                    if evenement.key == pygame.K_e: 
-                        if self.joueur.nb_leurre > 0:
-                            self.lancer_projectile("leurre", 6, self.maintient_flash) 
-                    if evenement.key == pygame.K_f: pass
+
+
  
                     
     def boucle_jeu(self):
         while True:
             self.verifications_touches_calvier_appuiees()
             self.verifications_autres_touches()
-            self.fenetre.fill(black)  # Tout effacer
+            self.fenetre.fill(black) # Tout effacer
             # Tout charger
             self.afficher_labyrinthe()
             self.si_joueur_veut_detruire()
             self.afficher_entitee(self.pieces)
             self.afficher_entitee(self.personnages)
             self.afficher_entitee([self.joueur])
-            self.afficher_bouton_quitter()
+            self.afficher_entitee(self.labels)
             self.afficher_entitee(self.projectile)
             self.mettre_a_jour_projectile()
             self.mettre_a_jour_ennemies()
@@ -675,10 +713,10 @@ class Jeux():
             self.afficher_compteur_pieces()  
             self.afficher_barre_de_vie()  
             self.afficher_touches()  
+            if self.joueur.vie <= 0: self.joueur_meurt()
             pygame.display.flip()  
 
             self.clock.tick(60)  # Limiter les FPS à 60
-
 
 if __name__ == "__main__":
     pygame.init()
@@ -690,11 +728,14 @@ if __name__ == "__main__":
 
     # Afficher le menu
     menu = Menu(fenetre, largeur, hauteur)
-    menu.boucle_menu()  
+    menu.boucle_menu()  # Afficher et gérer le menu
+    
 
     # Si un mode de jeu a été sélectionné, lancer le jeu
     if menu.mode_jeu:
         jeu = Jeux(black, "Labyrinthe Game")
+        jeu.choisir_niveau(menu.mode_jeu)
+        """
         jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, blue)
         jeu.afficher_labyrinthe()
         jeu.creer_label(96, 0, 6, 4, red, "quitter")
@@ -705,6 +746,6 @@ if __name__ == "__main__":
         jeu.creer_entite(4, "yt.png", 30, 5, 1, 1, 0, 0 , False, 0, 0, 0)
         jeu.creer_entite(4, "yt.png", 10, 10, 1, 1, 0, 0 , False, 0, 0, 0)
         jeu.creer_entite(4, "yt.png", 0, 18, 1, 1, 0, 0 , False, 0, 0, 0)
-        jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0)
-
+        jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0) "
+        """
         jeu.boucle_jeu()
