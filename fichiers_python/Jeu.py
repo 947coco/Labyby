@@ -696,5 +696,5 @@ if __name__ == "__main__":
         jeu.creer_entite(4, "yt.png", 0, 18, 1, 1, 0, 0 , False, 0, 0, 0)
         jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0) "
         """
-        jeu.choisir_niveau(4)
+        jeu.choisir_niveau(0)
         jeu.boucle_jeu()
