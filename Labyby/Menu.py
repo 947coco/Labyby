@@ -55,7 +55,7 @@ class Menu:
         self.fenetre.blit(self.background, (0, 0))
 
         # Afficher le titre
-        titre = self.font.render("CHOISISSEZ UN NIVEAU", True, red)
+        titre = self.font.render("LABYBY", True, red)
         titre_rect = titre.get_rect(center=(self.largeur // 2, self.hauteur // 4))
         self.fenetre.blit(titre, titre_rect)
 

@@ -132,18 +132,6 @@ largeur, hauteur = pygame.display.get_surface().get_size()
 menu = Menu(fenetre, largeur, hauteur)
 menu.gerer_evenements()
 
-# Lancer le jeu avec le mode sélectionné
-if menu.mode_jeu:
-    print(f"Mode de jeu sélectionné : {menu.mode_jeu}")
-    # Vous pouvez maintenant initialiser votre jeu avec le mode sélectionné
-    # Par exemple :
-    # jeu = Jeux(black, "titre1")
-    # jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, blue)
-    # jeu.boucle_jeu()
-else:
-    pygame.quit()
-
-
 
 
 class Jeux():
@@ -179,7 +167,7 @@ class Jeux():
         self.creer_pieces(nb_pieces,"piece.png", self.labyrinthe, self.joueur, self.long_mur)
         for ennemie in range(nb_ennemies):
             j, i = self.labyrinthe.case_random()
-            self.creer_entite(vitesse_ennemies, "yt.png", i, j, largeur_ennemies, hauteur_ennemies, 0, 0, False, 0, 0, 0)
+            self.creer_entite(vitesse_ennemies, "mechant.png", i, j, largeur_ennemies, hauteur_ennemies, 0, 0, False, 0, 0, 0)
         self.joueur.pieces_a_recup = nb_pieces
 
     def choisir_niveau(self, numero):
@@ -189,10 +177,12 @@ class Jeux():
         if numero == 3: self.reinitialiser(40, 20, 2, 0.8, 0.8, 15, 30, 5, 5, 20, 50,   (37, 16))
         if numero == 4: self.reinitialiser(10, 10, 5, 1, 1, 4, 15, 0, 0, 20, 25,   (0, 0))
         if numero == 5: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
-        if numero == 6: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
-        if numero == 7: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
-        if numero == 8: self.reinitialiser(40, 20, 7, 1.1, 1.1, 10, 50, 10, 10, 50, 25,   (15, 18))
-        
+        if numero == 6: self.reinitialiser(40, 20, 9, 1.2, 1.2, 100, 100, 100, 100, 100, 25,   (15, 18))
+        if numero == 7: self.reinitialiser(40, 20, 10, 1, 1, 100, 100, 100, 100, 100, 40,   (15, 18))
+        if numero == 8: self.reinitialiser(40, 20, 11, 1.1, 1.1, 100, 100, 100, 100, 100, 60,   (16, 10))
+        if numero == 9: self.reinitialiser(40, 20, 12, 1.2, 1.2, 100, 100, 100, 100, 100, 70,   (0, 16))
+        if numero == 10: self.reinitialiser(40, 20, 13, 1.3, 1.3, 100, 100, 100, 100, 100, 80,   (37, 1))
+        if numero>10: self.choisir_niveau(numero-10)
 
 
     # FONCTIONS A FAIRE : Implementer les compteurs et afficher sur l'ecran ceux-ci  
@@ -627,7 +617,7 @@ class Jeux():
         temps_maintient = time.time()-maintient
         if temps_maintient> distance_max: distance_lance = distance_max
         else :  distance_lance = math.ceil(temps_maintient)
-        self.creer_projectile(60, "yt.png", "boom.mp3", type, self.long_mur/2, self.long_mur/2, distance_lance*1.5)
+        self.creer_projectile(60, "grenade.png", "boom.mp3", type, self.long_mur/2, self.long_mur/2, distance_lance*1.5)
         
 
     def verifier_deplacement(self, touche_pressee): 
@@ -649,7 +639,7 @@ class Jeux():
         if touche_clavier[pygame.K_e]: 
             if self.joueur.nb_tire > 0 and time.time()-self.joueur.dernier_tire>0.4 :
                 self.joueur.dernier_tire = time.time() 
-                self.creer_projectile(70, "yt.png", "boom.mp3", "tire", self.long_mur/6, self.long_mur/6, 999)
+                self.creer_projectile(70, "bullet.png", "boom.mp3", "tire", self.long_mur/4, self.long_mur/4, 999)
         self.tourner_modele([self.joueur])
 
  
@@ -713,7 +703,10 @@ class Jeux():
             self.afficher_compteur_pieces()  
             self.afficher_barre_de_vie()  
             self.afficher_touches()  
-            if self.joueur.vie <= 0: self.joueur_meurt()
+            if self.joueur.vie <= 0: 
+                self.joueur_meurt()
+                pygame.quit()
+                sys.exit()
             pygame.display.flip()  
 
             self.clock.tick(60)  # Limiter les FPS à 60
@@ -735,17 +728,4 @@ if __name__ == "__main__":
     if menu.mode_jeu:
         jeu = Jeux(black, "Labyrinthe Game")
         jeu.choisir_niveau(menu.mode_jeu)
-        """
-        jeu.creer_labyrinthe(40, 20, 6, 6, 2, 0.2, blue)
-        jeu.afficher_labyrinthe()
-        jeu.creer_label(96, 0, 6, 4, red, "quitter")
-        jeu.creer_label(94, 20, 0.5, 1, green, "endurance")
-        jeu.creer_entite(1.4, "Logo_joueur.png", 0, 1, 1.5, 1.5, 10, 10, True, 0, 2, 2)
-        jeu.creer_pieces(2,"piece.png", jeu.labyrinthe, jeu.joueur, jeu.long_mur)
-        jeu.creer_entite(4, "yt.png", 10, 10, 1, 1, 0, 0 , False, 0, 0, 0)
-        jeu.creer_entite(4, "yt.png", 30, 5, 1, 1, 0, 0 , False, 0, 0, 0)
-        jeu.creer_entite(4, "yt.png", 10, 10, 1, 1, 0, 0 , False, 0, 0, 0)
-        jeu.creer_entite(4, "yt.png", 0, 18, 1, 1, 0, 0 , False, 0, 0, 0)
-        jeu.creer_entite(4, "yt.png", 10, 19, 1, 1, 0, 0 , False, 0, 0, 0) "
-        """
         jeu.boucle_jeu()

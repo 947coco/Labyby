@@ -6,8 +6,10 @@ création d’un jeu de labyrinthe codé sous Python 3 en Programmation Orienté
 (on est bien 3)
 
 ## Lancer le jeu
-Lancer le fichier Jeu.py dans le dossier fichiers_python
-
+Si le .bat ou .desktop ne fonctionne pas
+    Sur windows : Ouvrir le terminal -> aller dans le dossier Labyby -> lancer la commande "python lancer.py"
+    Sur Linux : Pareille mais commande = "python3 lancer.py"
+    
 ## Le cahier des charges (consignes)
 Le programme doit être 100 % conçu orienté objet :
 - [x] il doit contenir plusieurs classes : par exemple Labyrinthe, Jeu, Personnages, Niveaux... 
