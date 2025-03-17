@@ -66,7 +66,8 @@ class Joueur():
             # a reprendre
 
     def case_random(self, labyrinthe):
-        i, j = random.choice(labyrinthe.graphe.voisin_de((self.case_i, self.case_j)))
+        try : i, j = random.choice(labyrinthe.graphe.voisin_de((self.case_i, self.case_j)))
+        except: i, j = self.case_i, self.case_j
         return labyrinthe.laby[i][j]
     
     def meilleur_case(self, debut, arrivee, labyrinthe, chemin=[]):

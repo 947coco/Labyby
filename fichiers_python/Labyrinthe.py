@@ -1,4 +1,8 @@
-import Case, Pile, random, Dico_plus_grand
+from Case import Case
+from Pile import Pile
+from Dico_plus_grand import Dico_plus_grand
+import random
+
 class Labyrinthe:
     def __init__(self, largeur, hauteur):
         self.hauteur, self.largeur = largeur, hauteur

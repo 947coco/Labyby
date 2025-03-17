@@ -1,5 +1,7 @@
 from couleurs import *
-import pygame, Button
+from Button import Button
+import pygame
+
 
 class Menu:
     def __init__(self, fenetre, largeur, hauteur):

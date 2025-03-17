@@ -1,5 +1,3 @@
-
-
 class Case: 
     def __init__(self):  
         self.murN, self.murS, self.murE, self.murW, self.vue = True, True, True, True, False
