@@ -55,11 +55,8 @@ class Labyrinthe:
 
         self.graphe = self.creer_un_graphe()    # enregistrer un dictionnaire d'adjacence avec la methode juste en-dessous
 
-    def regenerer(self):
-        for i in range(self.largeur-1):
-            for j in range(self.hauteur-1):
-                case = self.laby[j][i] 
-                case.vue, case.murN, case.murS, case.murE, case.murW = False, True, True, True, True
+    def regenerer(self, largeur, hauteur):
+        self.laby = [[Case() for i in range(largeur)] for x in range(hauteur)]
         self.generer()
 
     def creer_un_graphe(self):

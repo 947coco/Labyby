@@ -3,7 +3,7 @@ from couleurs import *
 
 
 class Joueur():
-    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, nb_leurre, pieces_a_recup, nb_destruction, nb_construction, est_joueur=True, labyrinthe=None, joueur=None):
+    def __init__(self, vitesse, coord_x, coord_y, case_i, case_j, direction, largeur, hauteur, chemin_image, nb_grenade, nb_tire, pieces_a_recup, nb_destruction, nb_construction, est_joueur=True, labyrinthe=None, joueur=None):
         # Différentes images pour diriger le modèle en fonction de la direction du regard
         self.image_droite = pygame.image.load(chemin_image).convert_alpha()
         self.image_gauche = pygame.transform.flip(self.image_droite, True, False)
@@ -25,6 +25,8 @@ class Joueur():
         self.pieces_a_recup = pieces_a_recup
         self.nb_grenade, self.nb_leurre = nb_grenade, nb_leurre 
         self.nb_destruction, self.nb_construction = nb_destruction, nb_construction 
+        self.nb_tire = nb_tire
+        self.dernier_tire = time.time()
         self.veut_detruire = False
         if est_joueur : 
             self.endurance = 120
@@ -33,7 +35,9 @@ class Joueur():
             self.case = self.case_random( labyrinthe)
         self.vie = 100  # Le joueur a 100 PV
         self.dernier_degat = 0  # Timestamp du dernier dégât reçu
-            
+
+    def peut_tirer(): return self.nb_tire > 0
+
     def mettre_a_jour_hitbox(self):
         self.x1, self.y1 = self.coord_x-self.largeur/2, self.coord_y-self.hauteur/2 # bords gauche et haut de la hitox
         self.x2, self.y2 = self.coord_x+self.largeur/2, self.coord_y+self.hauteur/2 # bords droite et bas de la hitbox
