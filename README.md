@@ -27,4 +27,4 @@ Le programme doit être 100 % conçu orienté objet :
 
 ## A rendre pour le lundi 17 mars 2025
 
-## Note obtenue : X/20
+## Note obtenue : 18/20
